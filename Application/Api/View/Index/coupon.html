@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+    <title>好友邀请你一起骑小蜜单车</title>
+    <meta name="keywords" content="" />
+    <meta name="description" content="" />
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="browsermode" content="application" />
+    <meta name="format-detection" content="telephone=no,email=no,adress=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <link rel="stylesheet" href="http://css.baojia.com/s4/c/css/reset.css">
+    <!-- <link rel="stylesheet" type="text/css" href="../../css/m-170816/style.css"> -->
+    <link rel="stylesheet" type="text/css" href="http://css.baojia.com/s4/e/css/m-170816/style.css">
+</head>
+<body>
+	<div class="coupon_box">
+		<foreach name="code" item="vo" >  
+		<div class="Coupon">
+			<div>
+				<h1>优惠券</h1>
+				<h2>有效期至<?php echo date('Y-m-d',$vo['over_time'])?></h2>
+				<h3>注册赠送优惠券</h3>
+			</div>
+			<div class="right">
+				&#165;<span>{$vo.price}</span>
+			</div>
+		</div>
+		</foreach>
+		<!-- <div class="Coupon">
+			<div>
+				<h1>优惠券</h1>
+				<h2>有效期至2017-05-27</h2>
+				<h3>注册赠送优惠券</h3>
+			</div>
+			<div class="right">
+				&#165;<span>2.00</span>
+			</div>
+		</div>
+		<div class="Coupon">
+			<div>
+				<h1>优惠券</h1>
+				<h2>有效期至2017-05-27</h2>
+				<h3>注册赠送优惠券</h3>
+			</div>
+			<div class="right">
+				&#165;<span>2.00</span>
+			</div>
+		</div>
+		<div class="Coupon">
+			<div>
+				<h1>优惠券</h1>
+				<h2>有效期至2017-05-27</h2>
+				<h3>注册赠送优惠券</h3>
+			</div>
+			<div class="right">
+				&#165;<span>2.00</span>
+			</div>
+		</div> -->
+		<div class="down_box">
+			<if condition="$type eq 1">
+				 <a href="https://itunes.apple.com/cn/app/%E5%B0%8F%E8%9C%9C%E5%8D%95%E8%BD%A6/id1211515606?mt=8" class="download">下载小蜜单车App</a>
+					<elseif condition="$type eq 2"/><a href="javascript:;" class="download">下载小蜜单车App</a>
+					<else /><a href="javascript:;" class="download">下载小蜜单车App</a>
+				</if>
+		</div>
+	</div>	
+
+</body>
+<script src="http://css.baojia.com/s4/e/js/m-170816/flexible.js"></script>
+</html>

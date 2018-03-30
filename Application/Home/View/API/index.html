@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <!-- 原始地址：//webapi.amap.com/ui/1.0/ui/misc/PositionPicker/examples/positionPicker.html -->
+    <!--<base href="//webapi.amap.com/ui/1.0/ui/misc/PositionPicker/examples/" />-->
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>拖拽选址</title>
+    <style>
+        body,html{height:100%;margin:0;width:100%;padding:0;overflow:hidden;font-size:13px}
+        .map{height:100%;width:60%;float:left}
+        #right{color:#444;background-color:#f8f8f8;width:40%;float:left;height:100%}
+        #right input,#start,#stop{margin:4px;margin-left:15px}
+        .title{width:100%;background-color:#dadada}
+        /*button{border:solid 1px;margin-left:15px;background-color:#dadafa}*/
+        .c{font-weight:600;padding-left:15px;padding-top:4px}
+        #address,#lnglat,#nearestJunction,#nearestPOI,#nearestRoad,.title,#my_url{padding-left:15px}
+    </style>
+    <script src="__JS__/jquery.min.js"></script>
+</head>
+
+<body>
+<div id="container" class="map" tabindex="0"></div>
+<div id='right'>
+    <div>
+        <div class='title'>选择模式</div>
+        <input type='radio' name='mode' value='dragMap' checked>拖拽地图模式</input>
+        <input type="input" id="plate_no" value="" data-no="DD930373" style="width:100px;"/>
+        <button onClick="search()">查询</button><a href="{:U('/Home/API/loadMap')}">前往loadMap</a>
+        </br>
+        <input type='radio' name='mode' value='dragMarker'>拖拽Marker模式</input>
+        </br>
+        加载车辆数：<input type='text' name='amount' id="amount" value='20'/>
+    </div>
+    <div>
+        <button id='start'>开始选点</button>
+        <button id='stop'>关闭选点</button>
+        <button id='measureDistance' onClick="javascript:startRuler()">开始测距</button>
+        <input type="button" class="button" value="显示热力图" onclick="heatmap.show()"/>
+        <input type="button" class="button" value="关闭热力图" onclick="heatmap.hide()"/>
+    </div>
+    <div>
+        <div class='title'>选址结果 <span id="search_distance" style="color:red;"></span></div>
+        <div class='c'>请求URL:<span id="my_url"></span></div>
+        <div class='c'>经纬度:<span id="lnglat"></span></div>
+        <div class='c'>地址:<span id='address'></span></div>
+        <div class='c'>最近的路口:<span id='nearestJunction'></span></div>
+        <div class='c'>最近的路:<span id='nearestRoad'></span></div>
+        <div class='c'>最近的POI:<span id='nearestPOI'></span></div>
+        <div>
+            <p>
+                当前时间<span id="now" style="width:180px;display:inline-block;background:#ABCDEF;"></span>
+                时间戳<span id="nowUnix" style="width:100px;display:inline-block;background:#ABCDEF;"></span><a href="javascrip:;" class="btn" onclick="copyUnixTime()">复制时间戳到输入框</a>
+            </p>
+            <p>
+                <label style="width:100px;" for="UnixTime">UNIX时间戳</label><input type="text" id="UnixTime" />
+                <input type="button" value="转换" class="btn btn-navbar" onclick="getDate()"/>
+                <span id="UnixTimeToDate" style="width:200px;background: #ABCDEF;"></span>
+            <p>
+            <p>
+                <input type="text" id="year" style="width:60px;" />
+                <label style="width:1em;" for="year">年</label>
+                <input type="text" id="month" style="width:60px;" />
+                <label style="width:1em;" for="month">月</label>
+                <input type="text" id="day" style="width:60px;" />
+                <label style="width:1em;" for="day">日</label>
+                <input type="text" id="hour" style="width:60px;" />
+                <label style="width:1em;" for="hour">时</label>
+                <input type="text" id="minute" style="width:60px;" />
+                <label style="width:1em;" for="minute">分</label>
+                <input type="text" id="second" style="width:60px;" />
+                <label style="width:1em;" for="second">秒</label>
+                <input type="button" value="转换" class="btn btn-navbar" onclick="getUnixTime()"/>
+                <span id="DateToUnixTime" style="width:200px;background: #ABCDEF;"> </span>
+            <p>
+        </div>
+    </div>
+</div>
+<script type="text/javascript" src="http://webapi.amap.com/maps?v=1.3&key=7461a90fa3e005dda5195fae18ce521b&plugin=AMap.Walking,AMap.MouseTool,AMap.PolyEditor,AMap.CircleEditor,AMap.Heatmap"></script>
+<!-- UI组件库 1.0 -->
+<script src="//webapi.amap.com/ui/1.0/main.js"></script>
+<script type="text/javascript" src="http://a.amap.com/jsapi_demos/static/resource/heatmapData.js"></script>
+<script type="text/javascript">
+    var markers=[],obj=null,map,count=0;
+    var positionPicker,ruler,heatmap,walking;
+    var navg,pathSimplifierIns,lineArr;
+    var infoWindow = new AMap.InfoWindow({ offset: new AMap.Pixel(0, -15) });
+    AMapUI.loadUI(['misc/PositionPicker'], function(PositionPicker) {
+        if (!isSupportCanvas()) {
+            alert('热力图仅对支持canvas的浏览器适用,您所使用的浏览器不能使用热力图功能,请换个浏览器试试~')
+        }
+        map = new AMap.Map('container', {
+            zoom: 12,
+            //center: [116.387772,39.985119],//地图中心点
+            //center:[116.4260278096245,39.90136665699717]
+            //center:[116.427288,39.904974]
+            center:[116.383689,39.904805]
+            //scrollWheel: false
+        })
+        map.plugin(["AMap.RangingTool"], function() {
+            ruler = new AMap.RangingTool(map);
+            AMap.event.addListener(ruler, "end", function (e) {
+                ruler.turnOff();
+            });
+        });
+        positionPicker = new PositionPicker({
+            mode: 'dragMap',
+            map: map
+        });
+        map.plugin(["AMap.Heatmap"], function() {
+            //初始化heatmap对象
+            heatmap = new AMap.Heatmap(map, {
+                radius: 25, //给定半径
+                opacity: [0, 0.8]
+                /*,gradient:{
+                 0.5: 'blue',
+                 0.65: 'rgb(117,211,248)',
+                 0.7: 'rgb(0, 255, 0)',
+                 0.9: '#ffea00',
+                 1.0: 'red'
+                 }*/
+            });
+            //设置数据集：该数据为北京部分“公园”数据
+            heatmap.setDataSet({
+                data: heatmapData,
+                max: 100
+            });
+        });
+        heatmap.hide();
+
+        //步行导航
+        walking = new AMap.Walking({
+            map: map,
+            autoFitView:false,
+            //panel: "panel"
+        });
+        /*var polyArray=[[116.368904,39.923423],
+         [116.368558,39.923396],
+         [116.368596,39.923207],
+         [116.36836,39.923248],
+         [116.368907,39.923191],
+         [116.368874,39.923026],
+         [116.369121,39.923158],
+         [116.369121,39.922985],
+         [116.368842,39.922845],
+         [116.367893,39.92282]];
+         var polygon = new AMap.Polygon({
+         map: map,
+         path: polyArray,
+         strokeColor: "blue",
+         strokeOpacity: 1,
+         strokeWeight: 2,
+         bubble:true,
+         strokeStyle: "dashed",
+         strokeDasharray:[15,3],
+         fillColor: "#f5deb3",
+         fillOpacity: 0.05
+         });*/
+
+        AMap.event.addListener(walking, "complete", walk_routeCallBack);
+        positionPicker.on('success', function(positionResult) {
+            count++;
+            var city=positionResult.regeocode.addressComponent.city;
+            if(city==""){
+                city=positionResult.regeocode.addressComponent.province;
+            };
+            //var u="http://api.baojia.com/test4/Api/Xmcar/xmHourBicycle?lngX=AAAAAA&latY=BBBBBB&city=CCCCCC";
+            var u="http://api.baojia.com/v2xm/Api/Xmcar/xmHourBicycle?lngX=AAAAAA&latY=BBBBBB&city=CCCCCC&debug=1&test=1";
+            u=u.replace("AAAAAA",positionResult.position.lng).replace("BBBBBB",positionResult.position.lat).replace("CCCCCC",city);
+            $("#my_url").html(u);
+            document.getElementById('lnglat').innerHTML = positionResult.position.lng+","+positionResult.position.lat;
+            document.getElementById('address').innerHTML = positionResult.address;
+            document.getElementById('nearestJunction').innerHTML = positionResult.nearestJunction;
+            document.getElementById('nearestRoad').innerHTML = positionResult.nearestRoad;
+            document.getElementById('nearestPOI').innerHTML = positionResult.nearestPOI;
+            var param={"lngX":positionResult.position.lng,"latY":positionResult.position.lat,"page":"1","pageNum":$("#amount").val(),"hourSupport":"1",
+                "showLevel":0,"radius":10,"adjustLevel":1,"level":16,
+                "province":positionResult.regeocode.addressComponent.province,
+                "city":city,
+                "zone":"","client_id":"218","version":"2.2.0","app_id":"218",
+                "qudao_id":"guanfang","timestamp":new Date().getTime(),"device_model":"","device_os":""};
+            var plate_no=$("#plate_no").val();
+            if(!plate_no) {
+                if (count > 1) {
+                    $("#search_distance").html("&#12288;加载中...");
+                    //$.post("{:U('/Home/API/xmHourBicycle')}",param,function (result) {
+                    $.post("{:U('/Home/API/xmHourBicycleOnline')}", param, function (result) {
+                        if (walking) {
+                            walking.clear();
+                        }
+                        if (result && result.status == 1) {
+                            $("#amount").val(result.price0Count);
+                            var groupAndCar = result.data.groupAndCar;
+                            var shortestId = result.data.shortestId;
+                            if (markers && markers.length > 0) {
+                                $.each(markers, function (i, m) {
+                                    m.setMap();
+                                })
+                                markers = [];
+                            }
+                            $("#search_distance").html("&#12288;搜索范围" + result.data.refreshDistance + "米，数据" + result.count + "条，耗时" + result.second + "秒，查询" + result.time1 + "秒，处理" + result.time2 + "秒，0元车"+result.price0Count+"辆");
+                            for (var k in groupAndCar) {
+                                if (k == shortestId) {
+                                    //console.log(groupAndCar[k].plateNo);
+                                }
+                                //遍历对象，k即为key，obj[k]为当前k对应的值
+                                //console.log(groupAndCar[k].gisLng);
+                                var marker = null;
+                                if (groupAndCar[k].isPrice0) {
+                                    //console.log(groupAndCar[k].battery);
+                                    marker = new AMap.Marker({
+                                        position: [groupAndCar[k].gisLng, groupAndCar[k].gisLat],
+                                        topWhenClick: true,
+                                        map: map,
+                                        icon: 'http://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
+                                        title: "车牌号:" + groupAndCar[k].plateNo,
+                                        extData: {
+                                            rentid: k,
+                                            plateno: groupAndCar[k].plateNo
+                                        }
+                                    });
+                                } else {
+                                    marker = new AMap.Marker({
+                                        position: [groupAndCar[k].gisLng, groupAndCar[k].gisLat],
+                                        topWhenClick: true,
+                                        map: map,
+                                        title: "车牌号:" + groupAndCar[k].plateNo,
+                                        extData: {
+                                            rentid: k,
+                                            plateno: groupAndCar[k].plateNo
+                                        }
+                                    });
+                                }
+                                var pic = groupAndCar[k].pictureUrls[2];
+                                var price = groupAndCar[k].mixText;
+                                /*while(price.indexOf('{')>=0||price.indexOf('}')>=0){
+                                 price=price.replace("{","").replace("}","")
+                                 }*/
+                                marker.content = '<a target="_blank" href="http://m.baojia.com/rentorder/getcrawmap?show_mark=1&rentid=' + k + '"><img style="height:40px;" src="' + pic + '"/></a>'
+                                    + groupAndCar[k].shopBrand+ '--' + groupAndCar[k].plateNo +'--'+groupAndCar[k].carItemId+'--'+ groupAndCar[k].id+'--电量'+ groupAndCar[k].battery+'--创建时间'+ groupAndCar [k].createTime+'--距今'+ groupAndCar[k].diffDays+'天--'+ groupAndCar[k].distanceText +'--' + groupAndCar[k].address + '距离您item.distance米，步行步行步行<br/><hr/>'+ groupAndCar[k].craw;
+                                marker.on('click', markerClick);
+                                //marker.emit('click', { target: marker });
+                                markers.push(marker);
+
+                            }
+                            function markerClick(e) {
+                                obj=e;
+                                //infoWindow.setContent(e.target.content);
+                                //infoWindow.open(map,e.target.getPosition());
+                                //positionPicker.stop();
+                                map.setCenter(positionResult.position);
+                                //根据起终点坐标规划步行路线
+                                walking.search([positionResult.position.lng, positionResult.position.lat], [e.target.getPosition().lng, e.target.getPosition().lat]);
+
+                            }
+                            //map.setFitView();
+                        }else{
+                            alert(result.msg);
+                            map.clearMap();
+                        }
+                    })
+                }
+            }
+        });
+        positionPicker.on('fail', function(positionResult) {
+            document.getElementById('lnglat').innerHTML = ' ';
+            document.getElementById('address').innerHTML = ' ';
+            document.getElementById('nearestJunction').innerHTML = ' ';
+            document.getElementById('nearestRoad').innerHTML = ' ';
+            document.getElementById('nearestPOI').innerHTML = ' ';
+        });
+        var onModeChange = function(e) {
+            positionPicker.setMode(e.target.value)
+        }//.attr("checked",'checked');
+        var startButton = document.getElementById('start');
+        var stopButton = document.getElementById('stop');
+        var dragMapMode = document.getElementsByName('mode')[0];
+        var dragMarkerMode = document.getElementsByName('mode')[1];
+        AMap.event.addDomListener(startButton, 'click', function() {
+            positionPicker.start(map.getBounds().getSouthWest())
+        })
+        AMap.event.addDomListener(stopButton, 'click', function() {
+            positionPicker.stop();
+        })
+        AMap.event.addDomListener(dragMapMode, 'change', onModeChange)
+        AMap.event.addDomListener(dragMarkerMode, 'change', onModeChange);
+        positionPicker.start();
+        map.panBy(0, 1);
+        /*map.addControl(new AMap.ToolBar({
+         liteStyle: true
+         }))*/
+    });
+
+    function search(){
+        var plate_no=$("#plate_no").val();
+        var apiUrl ="{:U('/Api/Operation/details')}";
+        $.ajax({
+            url: apiUrl,
+            data: {"plate_no":plate_no},
+            type: "post",
+            dataType: "json",
+            success: function (data) {
+                if (data && data.code == 1) {
+                    if(pathSimplifierIns) {
+                        navg.destroy();
+                        pathSimplifierIns.clearPathNavigators();
+                    }
+                    clearMarks();
+                    if(data.data.car_gd_latitude&&data.data.car_gd_longitude){
+                        var marker = new AMap.Marker({
+                            position: [data.data.car_gd_longitude,data.data.car_gd_latitude],
+                            icon: 'http://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
+                            map: map
+                        });
+                        marker.content = '<img style="height:40px;" src="' + data.data.picture_url + '"/>'+ data.data.full_name+ '--' + data.data.plate_no +'--'+ data.data.id+'--电量'+ data.data.battery_capacity+'--'+ data.data.car_status+'--'+ data.data.is_inarea+'--'+ data.data.is_online+'<br/><hr/>最后定位时间：' + data.data.datetime +'(' + data.data.datetime_diff + ')<br/><hr/>最后心跳时间：'+data.data.lastonline;
+                        marker.on('click', markerClickA);
+                        //marker.setMap(map);
+                        markers.push(marker);
+                        map.setCenter(marker.getPosition());
+                        // 自定义构造AMap.Marker对象  var point = new AMap.LngLat(lng,lat); // 创建点坐标
+                    }
+                    if(data.data.user_return.guiji&&data.data.user_return.guiji.length>0){
+                        if(data.data.user_return.start){
+                            var marker = new AMap.Marker({
+                                position: [data.data.user_return.start.lon,data.data.user_return.start.lat],
+                                icon: 'http://webapi.amap.com/theme/v1.3/markers/n/start.png',
+                                map: map
+                            });
+                            marker.setMap(map);
+                            markers.push(marker);
+                        }
+                        if(data.data.user_return.end){
+                            var marker = new AMap.Marker({
+                                position: [data.data.user_return.end.lon,data.data.user_return.end.lat],
+                                icon: 'http://webapi.amap.com/theme/v1.3/markers/n/end.png',
+                                map: map
+                            });
+                            marker.setMap(map);
+                            markers.push(marker);
+                        }
+                        lineArr = [];
+                        $.each(data.data.user_return.guiji,function(i,item){
+                            var line=[item.longitude,item.latitude];
+                            lineArr.push(line);
+                        });
+
+                        AMapUI.load(['ui/misc/PathSimplifier', 'lib/$'], function(PathSimplifier, $) {
+                            if (!PathSimplifier.supportCanvas) {
+                                alert('当前环境不支持 Canvas！');
+                                return;
+                            }
+                            pathSimplifierIns = new PathSimplifier({
+                                zIndex: 100,
+                                //autoSetFitView:false,
+                                map: map, //所属的地图实例
+                                getPath: function(pathData, pathIndex) {
+                                    return pathData.path;
+                                },
+                                getHoverTitle: function(pathData, pathIndex, pointIndex) {
+                                    if (pointIndex >= 0) {
+                                        //point
+                                        return pathData.name + '，点：' + pointIndex + '/' + pathData.path.length;
+                                    }
+                                    return pathData.name + '，点数量' + pathData.path.length;
+                                },
+                                renderOptions: {
+                                    renderAllPointsIfNumberBelow:100 //绘制路线节点，如不需要可设置为-1
+                                }
+                            });
+                            window.pathSimplifierIns = pathSimplifierIns;
+                            //设置数据
+                            pathSimplifierIns.setData([{
+                                name: '路线0',
+                                path: lineArr
+                            }]);
+                            //对第一条线路（即索引 0）创建一个巡航器
+                            navg = pathSimplifierIns.createPathNavigator(0, {
+                                loop: false, //循环播放
+                                speed: 1000 //巡航速度，单位千米/小时
+                            });
+                            navg.start();
+                        });
+                    }
+                }
+            }
+        });
+    }
+    function markerClickA(e){
+        infoWindow.setContent(e.target.content);
+        infoWindow.open(map, e.lnglat);
+    }
+    //导航结果展示
+    function walk_routeCallBack(data) {
+        var routes = data.routes;
+        if (routes.length <= 0) {
+            alert("未查找到任何结果!\n建议：\n1.请确保所有字词拼写正确。\n2.尝试不同的关键字。\n3.尝试更宽泛的关键字");
+        }
+        else {
+            //alert($("#distance").html());
+            var time=routes[0].time;
+            var minutes=0,second=0;
+            if(time>0){
+                minutes=parseInt(time/60);
+                second=parseInt(time%60);
+            }
+            var content=obj.target.content.replace("item.distance",routes[0].distance).replace("步行步行步行","步行"+minutes+"分"+second+"秒") ;
+            infoWindow.setContent(content);
+            infoWindow.open(map,obj.target.getPosition());
+        }
+        //positionPicker.start();
+    }
+    //时间戳转日期时间
+    function getDate() {
+        var UnixTime = $('#UnixTime').val() * 1000;
+        var dateObj = new Date(UnixTime);
+        var UnixTimeToDate = dateObj.getFullYear() + ' 年 ' + (dateObj.getMonth() +1 ) + ' 月 ' + dateObj.getDate() + ' 日 ' + dateObj.getHours() + ':' + dateObj.getMinutes() + ':' + dateObj.getSeconds();
+        //$('#UnixTimeToDate').text(dateObj.format('yyyy-MM-dd h:m:s'));
+        $('#UnixTimeToDate').text(UnixTimeToDate);
+    }
+
+    //日期时间转时间戳
+    function getUnixTime() {
+        var year = parseInt($('#year').val());
+        var month = parseInt($('#month').val());
+        var day = parseInt($('#day').val());
+        var hour = parseInt($('#hour').val());
+        var minute = parseInt($('#minute').val());
+        var second = parseInt($('#second').val());
+        var now = new Date(new Date().getTime());// + 28800000);//东8区时间偏移量为28800000毫秒
+        if(isNaN(year)) { year = now.getUTCFullYear(); }
+        if(isNaN(month)) { month = now.getUTCMonth(); } else { month--; }
+        if(isNaN(day)) { day = now.getUTCDate(); }
+        if(isNaN(hour)) { hour = now.getHours(); }
+        if(isNaN(minute)) { minute = now.getUTCMinutes(); }
+        if(isNaN(second)) { second = now.getUTCSeconds(); }
+        var UnixTime = new Date(year,month,day,hour,minute,second);
+        $('#DateToUnixTime').text(UnixTime/1000);
+        $('#year').val(year);
+        $('#month').val(month+1);
+        $('#day').val(day);
+        $('#hour').val(hour);
+        $('#minute').val(minute);
+        $('#second').val(second);
+    }
+
+    //当前时间
+    setInterval("clock()",60);
+    function clock() {
+        //var timestamp = Date.parse(new Date());
+        var UnixTime = new Date().getTime();
+        var now = new Date(UnixTime+28800000);
+        $('#now').text(now.getUTCFullYear() + ' 年 ' + (now.getUTCMonth()+1) + ' 月 ' + now.getUTCDate() + ' 日 ' + now.getUTCHours() + ':' + now.getUTCMinutes() + ':' + now.getUTCSeconds());
+        $('#nowUnix').text(parseInt(UnixTime/1000));
+    }
+
+    //复制当前时间戳
+    function copyUnixTime() {
+        $('#UnixTime').val($('#nowUnix').text());
+    }
+
+    Date.prototype.format = function(format) {
+        var date = {
+            "M+": this.getMonth() + 1,
+            "d+": this.getDate(),
+            "h+": this.getHours(),
+            "m+": this.getMinutes(),
+            "s+": this.getSeconds(),
+            "q+": Math.floor((this.getMonth() + 3) / 3),
+            "S+": this.getMilliseconds()
+        };
+        if (/(y+)/i.test(format)) {
+            format = format.replace(RegExp.$1, (this.getFullYear() + '').substr(4 - RegExp.$1.length));
+        }
+        for (var k in date) {
+            if (new RegExp("(" + k + ")").test(format)) {
+                format = format.replace(RegExp.$1, RegExp.$1.length == 1
+                    ? date[k] : ("00" + date[k]).substr(("" + date[k]).length));
+            }
+        }
+        return format;
+    }
+    function startRuler(){
+        ruler.turnOn();
+    }
+    //判断浏览区是否支持canvas
+    function isSupportCanvas() {
+        var elem = document.createElement('canvas');
+        return !!(elem.getContext && elem.getContext('2d'));
+    }
+    function clearMarks(){
+        if (markers && markers.length > 0) {
+            $.each(markers, function (i, m) {
+                m.setMap();
+            })
+            markers = [];
+        }
+    }
+</script>
+</body>
+
+</html>

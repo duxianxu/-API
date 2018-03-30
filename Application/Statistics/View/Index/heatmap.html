@@ -1,0 +1,191 @@
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+	<title>热力图</title>
+	<link href="http://netdna.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css" rel="stylesheet">
+	<link rel="stylesheet" type="text/css" media="all" href="http://www.daterangepicker.com/daterangepicker.css">
+	<script src="https://code.jquery.com/jquery-1.11.3.min.js"></script>
+	<script type="text/javascript" src="http://netdna.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="http://momentjs.cn/downloads/moment.min.js"></script>
+	<script type="text/javascript" src="http://www.daterangepicker.com/daterangepicker.js"></script>
+	<script type="text/javascript" src="__JS__/layer/layer.js"></script>
+	</head>
+	<style>
+		html,body{height:100%;margin:0;width:100%;padding:0;overflow:hidden;font-size:13px}
+		.map{height:100%;width:60%;float:left}
+		#right{color:#444;background-color:#f8f8f8;width:40%;float:left;height:100%}
+		#start,#stop,#right input{margin:4px;margin-left:15px}
+		.title{width:100%;background-color:#dadada;padding-left:15px}
+		button{width:100px;}
+		.c{font-weight:600;padding-left:15px;padding-top:4px}
+	</style>
+</head>
+
+<body>
+<div id="container" class="map" tabindex="0"></div>
+<div id='right'>
+	<div id="daterange-btn" style="background: #fff; cursor: pointer;width:215px; padding: 5px 10px; border: 1px solid #ccc">
+		<i class="glyphicon glyphicon-calendar fa fa-calendar"></i>
+		<span></span>
+		<b class="caret"></b>
+		<input type="hidden" id="startTime"/>
+		<input type="hidden" id="endTime"/>
+	</div>
+	<div>
+		<div class='title'>取/还车点</div>
+		<input type='radio' name='pointMode' value='1' checked>取车点</input>
+		<input type='radio' name='pointMode' value='2'>还车点</input>
+	</div>
+	<div>
+		<div class='title'>城市</div>
+		<foreach name="cityArray" item="vo" >
+			<input type="radio" name="city" value="{$vo.id}" data-longitude="{$vo.gis_lng}" data-latitude="{$vo.gis_lat}">{$vo.name}
+		</foreach>
+	</div>
+	<div>
+		<br/>
+		<button id='start'>查 询</button>
+	</div>
+</div>
+<script type="text/javascript" src='http://webapi.amap.com/maps?v=1.3&key=7461a90fa3e005dda5195fae18ce521b&plugin=AMap.MouseTool,AMap.ToolBar,AMap.Heatmap'></script>
+<!-- UI组件库 1.0 -->
+<script src="http://webapi.amap.com/ui/1.0/main.js?v=1.0.10"></script>
+<script type="text/javascript" src="http://a.amap.com/jsapi_demos/static/resource/heatmapData.js"></script>
+<script type="text/javascript">
+    var map,longitude,latitude,point,param,heatmap,heatmapData;
+	$(function(){
+        map = new AMap.Map('container', {
+            zoom: 10,
+            resizeEnable: true,
+            scrollWheel: true
+        })
+        map.addControl(new AMap.ToolBar({
+            liteStyle: true
+        }))
+        if (!isSupportCanvas()) {
+            layer.msg("热力图仅对支持canvas的浏览器适用,您所使用的浏览器不能使用热力图功能,请换个浏览器试试~");
+        }else{
+            map.plugin(["AMap.Heatmap"], function() {
+                //初始化heatmap对象
+                heatmap = new AMap.Heatmap(map, {
+                    radius: 25, //给定半径
+                    opacity: [0, 1],
+					gradient:{
+					 0.5: 'blue',
+					 0.65: 'rgb(117,211,248)',
+					 0.7: 'rgb(0, 255, 0)',
+					 0.9: '#ffea00',
+					 1.0: 'red'
+					 }
+                });
+            });
+		}
+        //$('#daterange-btn span').html(moment().startOf('month').format('YYYY-MM-DD') + ' 至 ' + moment().format('YYYY-MM-DD'));
+        //$("#startTime").val(moment().startOf('month').format('YYYY-MM-DD'));
+        //$("#endTime").val(moment().format('YYYY-MM-DD'));
+        $('#daterange-btn span').html(moment().subtract('days', 6).format('YYYY-MM-DD') + ' 至 ' + moment().format('YYYY-MM-DD'));
+        $("#startTime").val(moment().subtract('days', 6).format('YYYY-MM-DD'));
+        $("#endTime").val(moment().format('YYYY-MM-DD'));
+        $('#daterange-btn').daterangepicker({
+            //startDate: moment().startOf('month'),
+            //endDate: moment().endOf('month'),
+            startDate: moment().subtract('days', 6),
+            endDate: moment(),
+            format: 'YYYY-MM-DD',
+            //minDate: '2013/01/01',
+            //maxDate: '2022/12/31',
+            dateLimit: { days:10 },
+            showDropdowns : true,
+            showWeekNumbers: true,
+            //alwaysShowCalendars: false,
+            //timePickerIncrement: 1,
+            autoApply: false,
+            buttonClasses: ['btn btn-default'],
+            applyClass: 'btn-small btn-primary',
+            cancelClass: 'btn-small',
+            opens : 'right',
+            separator: ' 至 ',
+            ranges: {
+                '今天': [moment().startOf('day'), moment()],
+                '昨天': [moment().subtract('days', 1).startOf('day'), moment().subtract('days', 1).endOf('day')],
+                '最近7天': [moment().subtract('days', 6), moment()],
+                '最近30天': [moment().subtract('days', 29), moment()],
+                '本月': [moment().startOf('month'), moment().endOf('month')],
+                '上月': [moment().subtract('month', 1).startOf('month'), moment().subtract('month', 1).endOf('month')]
+            },
+            locale: {
+                applyLabel: '确定',
+                cancelLabel: '取消',
+                fromLabel: '开始',
+                toLabel: '结束',
+                customRangeLabel: '自定义',
+                daysOfWeek: ['日', '一', '二', '三', '四', '五','六'],
+                monthNames: ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'],
+                firstDay: 1
+            }
+        }, function(start, end, label) {
+            $('#daterange-btn span').html(start.format('YYYY-MM-DD') + ' 至 ' + end.format('YYYY-MM-DD'));
+            $("#startTime").val(start.format('YYYY-MM-DD'));
+            $("#endTime").val(end.format('YYYY-MM-DD'));
+        });
+        $("input[name='city'][value='1']").attr("checked",true);
+        longitude=$("input[name='city'][checked]").data("longitude");
+        latitude=$("input[name='city'][checked]").data("latitude");
+        point = new AMap.LngLat(longitude,latitude);
+        map.setCenter(point);
+        var start=$("#startTime").val();
+        var end=$("#endTime").val();
+        param={"pointMode":1,"city":1,"start":start,"end":end};
+        loadData();
+        $("input:radio[name='city']").change(function (){
+            $("input[name='city'][checked]").removeAttr('checked');
+            $(this).attr("checked",true);
+            longitude=$(this).data("longitude");
+            latitude=$(this).data("latitude");
+            point = new AMap.LngLat(longitude,latitude);
+        });
+        $("input:radio[name='pointMode']").change(function (){
+            $("input[name='pointMode'][checked]").removeAttr('checked');
+            $(this).attr("checked",true);
+        });
+        $("#start").click(function(){
+            map.setCenter(point);map.setZoom(10);
+            var pointMode=$("input[name='pointMode'][checked]").val();
+            var city=$("input[name='city'][checked]").val();
+            var start=$("#startTime").val();
+            var end=$("#endTime").val();
+            param={"pointMode":pointMode,"city":city,"start":start,"end":end};
+            loadData();
+		})
+    })
+
+	function loadData(){
+        layer.load();
+        $.post("{:U('/Statistics/Index/LoadHeatmapData')}", param, function (result) {
+            layer.closeAll('loading');
+            if(result){
+                if(result.data) {
+                    heatmapData = result.data;
+                    heatmap.setDataSet({
+                        data: heatmapData,
+                        max: 100
+                    });
+                }
+                layer.msg(result.message);
+            }else{
+                layer.msg("加载数据失败");
+            }
+        });
+	}
+
+    //判断浏览区是否支持canvas
+    function isSupportCanvas() {
+        var elem = document.createElement('canvas');
+        return !!(elem.getContext && elem.getContext('2d'));
+    }
+</script>
+</body>
+
+</html>

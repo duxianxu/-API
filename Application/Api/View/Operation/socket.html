@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>socket测试</title>
+    <style>
+        body,html{height:100%;margin:0;width:100%;padding:0;overflow:hidden;font-size:13px}
+        .map{height:100%;width:60%;float:left}
+        #right{color:#444;background-color:#f8f8f8;width:40%;float:left;height:100%}
+        #right{overflow-y:scroll;overflow-x:hidden;}
+        #right input,#right select,#start{margin:4px;margin-left:15px}
+        input[type="button"]{margin-left:5px;height:45px;width:100px;}
+        .c{font-weight:600;padding-left:15px;padding-top:4px}
+    </style>
+    <script src="__JS__/jquery.min.js"></script>
+</head>
+<body>
+<div id="container" class="map" tabindex="0"></div>
+<div id='right'>
+    <div>
+        <p>
+            <span>方法名称：</span>
+            <select id="selAPI">
+                <option value="KeepConnection">保持连接</option>
+                <option value="NearbyBicycle">附近车辆</option>
+                <option value="OrderInfo">订单详情</option>
+                <!--<option value="GetImei">测试</option>-->
+            </select>
+            <span id="error" style="color:red;"></span>
+        </p>
+        <p><span>心跳数据：</span></p>
+        <p>
+            <textarea id="parameter" rows="2" cols="10" style="width:95%;height:50px;resize:both;margin-left:15px;"></textarea>
+        </p>
+        <p>
+            <input type="button" value="连接" id="btnConnection">
+            <input type="button" value="断开连接" id="btnDisconnect">
+        </p>
+        <p>
+            <span>接受消息内容：<a href="javascript:clearText();">清空</a></span>
+        </p>
+        <p><textarea id="reault" rows="2" cols="10" style="width:95%;height:500px;resize:both;margin-left:15px;" placeholder="返回结果"></textarea></p>
+    </div>
+</div>
+<script type="text/javascript" src="http://webapi.amap.com/maps?v=1.3&key=7461a90fa3e005dda5195fae18ce521b&plugin=AMap.Walking,AMap.MouseTool,AMap.PolyEditor,AMap.CircleEditor"></script>
+<script src="//webapi.amap.com/ui/1.0/main.js?v=1.0.10"></script>
+<script type="text/javascript">
+    var ws;
+    var lockReconnect = false;//避免重复连接
+    //var wsUrl = 'ws://10.1.11.51:9502';
+    var wsUrl = 'ws://xmsocket.baojia.com';
+
+    var map,parameter,sign,timestamp,markers,lnglat,polygon;
+    var infoWindow = new AMap.InfoWindow({ offset: new AMap.Pixel(0, -30) });
+    var city="北京市",markers=[],obj=null,flag=true;
+    $(function(){
+        //lnglat = new AMap.LngLat(116.387772,39.985119);
+        lnglat = new AMap.LngLat(116.533732,39.911245);
+        map = new AMap.Map('container', {
+            zoom: 16,
+            center:lnglat,
+        });
+        timestamp = (new Date()).valueOf();
+        parameter={"action":"KeepConnection"};
+        $("#parameter").val(JSON.stringify(parameter));
+        $("#selAPI").change(function(){
+            $("#error").empty();
+            var name=$(this).val();
+            if(name) {
+                timestamp = (new Date()).valueOf();
+                switch (name) {
+                    case "NearbyBicycle":
+                        parameter={"action":"NearbyBicycle"};
+                        parameter.city=city;
+                        parameter["lngX"]=lnglat.lng;
+                        parameter["latY"]=lnglat.lat;
+                        //parameter["device_os"]="windows";
+                        break;
+                    case "OrderInfo":
+                        parameter={"action":"OrderInfo"};
+                        parameter.uid="2742456";
+                        parameter.orderId="5907606";
+                        parameter.gis_lng="116.34398";
+                        parameter.gis_lat="39.970634";
+                        break;
+                    case "GetImei":
+                        parameter={"action":"GetImei"};
+                        parameter.timestamp=timestamp;
+                        break;
+                    case "KeepConnection":
+                        parameter={"action":"KeepConnection"};
+                        break;
+                }
+                $("#parameter").val(JSON.stringify(parameter));
+            }else{
+                $("#api_url,#parameter").empty();
+            }
+        })
+        $("#btnConnection").click(function () {
+            createWebSocket(wsUrl);
+        });
+        $("#btnDisconnect").click(function () {
+            if(confirm("确定要断开连接吗？")) {
+                location.reload();
+            }
+        });
+    })
+
+    function createWebSocket(url) {
+        try {
+            ws = new WebSocket(url);
+            initEventHandle();
+        } catch (e) {
+            reconnect(url);
+        }
+    }
+
+    function initEventHandle() {
+        ws.onclose = function () {
+            reconnect(wsUrl);
+        };
+        ws.onerror = function () {
+            reconnect(wsUrl);
+        };
+        ws.onopen = function () {
+            console.log("连接成功");
+            //心跳检测重置
+            heartCheck.reset().start();
+        };
+        ws.onmessage = function (event) {
+            var result=$("#reault").val();
+            if(result) {
+                $("#reault").val(event.data+"\n"+result);
+                var data=JSON.parse(event.data);
+                if(data&&data.action){
+                    if(data.action=="NearbyBicycle"){
+                        loadXiaomi(data);
+                    }
+                }
+            }else{
+                $("#reault").val(event.data)
+            }
+            //如果获取到消息，心跳检测重置 拿到任何消息都说明当前连接是正常的
+            heartCheck.reset().start();
+        }
+    }
+
+    function reconnect(url) {
+        if(lockReconnect) return;
+        lockReconnect = true;
+        //没连接上会一直重连，设置延迟避免请求过多
+        setTimeout(function () {
+            createWebSocket(url);
+            lockReconnect = false;
+        }, 2000);
+    }
+
+
+    //心跳检测
+    var heartCheck = {
+        timeout: 5000,//5秒
+        timeoutObj: null,
+        serverTimeoutObj: null,
+        reset: function(){
+            clearTimeout(this.timeoutObj);
+            clearTimeout(this.serverTimeoutObj);
+            return this;
+        },
+        start: function(){
+            var self = this;
+            this.timeoutObj = setTimeout(function(){
+                //这里发送一个心跳，后端收到后，返回一个心跳消息，onmessage拿到返回的心跳就说明连接正常
+                timestamp = (new Date()).valueOf();
+                parameter.timestamp=timestamp;
+                ws.send(JSON.stringify(parameter));
+                self.serverTimeoutObj = setTimeout(function(){
+                    //如果超过一定时间还没重置，说明后端主动断开了
+                    ws.close();
+                    //如果onclose会执行reconnect，我们执行ws.close()就行了.如果直接执行reconnect 会触发onclose导致重连两次
+                }, self.timeout)
+            }, this.timeout)
+        }
+    };
+
+    function loadXiaomi(result){
+        if(flag){
+            console.dir(result);
+            flag=false;
+        }
+        //console.log("开始加载");
+        infoWindow.close();
+        map.clearMap();
+        markers = [];
+        if (result && result.status == 1) {
+            $("#amount").val(result.price0Count);
+            var groupAndCar = result.data.groupAndCar;
+            var shortestId = result.data.shortestId;
+            for (var k in groupAndCar) {
+                var icon='http://webapi.amap.com/theme/v1.3/markers/n/mark_b.png';
+                if (k == shortestId) {
+                    icon='http://webapi.amap.com/theme/v1.3/markers/n/mark_b1.png';
+                }
+                var marker = null;
+                if (groupAndCar[k].isPrice0) {
+                    marker = new AMap.Marker({
+                        position: [groupAndCar[k].gisLng, groupAndCar[k].gisLat],
+                        topWhenClick: true,
+                        map: map,
+                        icon: 'http://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
+                        title: "车牌号:" + groupAndCar[k].plateNo,
+                        extData: {
+                            rentid: k
+                        }
+                    });
+                } else {
+                    marker = new AMap.Marker({
+                        position: [groupAndCar[k].gisLng, groupAndCar[k].gisLat],
+                        topWhenClick: true,
+                        map: map,
+                        icon:icon,
+                        title: "车牌号:" + groupAndCar[k].plateNo,
+                        extData: {
+                            rentid: k
+                        }
+                    });
+                }
+                marker.content ='图片'+'<br>'+k+'--'+groupAndCar[k].plateNo+'--'+groupAndCar[k].carItemId+'--'+groupAndCar[k].imei+
+                    '</br>最低消费</br>起步价(含保险)</br>计费规则</br>剩余续航里程</br>地址</br>还车网点';
+                marker.on('click', markerClick);
+                markers.push(marker);
+            }
+            function markerClick(e) {
+                obj=e;
+                var id=e.target.getExtData().rentid;
+                param={"id":id,"lngX":lnglat.lng,"latY":lnglat.lat,
+                    "city":city,"client_id":"218","version":"2.2.0","app_id":"218",
+                    "qudao_id":"guanfang","timestamp":new Date().getTime(),"device_model":"web","device_os":""};
+                $.post("{:U('/Api/Xmcar/loadDetails')}", param, function (result) {
+                    if (result && result.status == 1) {
+                        var content=obj.target.content;
+                        var price = result.data.mixText1;
+                        var startingPrice= result.data.startingPrice;
+                        var insurance= result.data.insurance;
+                        var runningDistance= result.data.runningDistance;
+                        var distanceText= result.data.distanceText;
+                        var address= result.data.address;
+                        var returnText="自由还";
+                        if(result.data.carReturnCode=="1"){
+                            returnText='<a target="_blank" href="'+result.data.returnCrawUrl+'">'+result.data.craw+'</a>';
+                        }
+                        content=content.replace('图片','<img style="height:20px;" src="' + pic + '"/>');
+                        content=content.replace('最低消费','最低消费' +startingPrice+ '元');
+                        content=content.replace('起步价(含保险)','起步价' +startingPrice+ '元(含保险' +insurance+ '元)');
+                        content=content.replace('计费规则',price);
+                        content=content.replace('剩余续航里程','剩余'+runningDistance+'km续航');
+                        content=content.replace('地址',address+'(距您'+distanceText+')');
+                        param={"car_item_id":result.data.carItemId,"gis_lng":result.data.gisLng,"gis_lat":result.data.gisLat};
+                        if(polygon){
+                            map.remove(polygon);
+                        }
+                        $.post("{:U('/Api/Test/loadRidingArea')}", param, function (result) {
+                            if (result && result.status == 1) {
+                                if(result.in_area==true) {
+                                    content = content.replace('还车网点', returnText);
+                                    content+=",在界内"
+                                }
+                                if(result.in_area==false) {
+                                    content = content.replace('还车网点', returnText);
+                                    content+=",在界外"
+                                }
+                                infoWindow.setContent(content);
+                                infoWindow.open(map,obj.target.getPosition());
+                                if (result.points && result.points.length > 0){
+                                    polygon = new AMap.Polygon({
+                                        map: map,
+                                        path: result.areapoints,
+                                        strokeColor: "blue",
+                                        strokeOpacity: 1,
+                                        strokeWeight: 2,
+                                        bubble: true,
+                                        strokeStyle: "dashed",
+                                        strokeDasharray: [15, 3],
+                                        fillColor: "#f5deb3",
+                                        fillOpacity: 0.05
+                                    });
+                                }
+                            }else{
+                                console.log(result.msg);
+                                map.clearMap();
+                            }
+                        });
+                    }
+                });
+            }
+        }else{
+            console.log(result.msg);
+            map.clearMap();
+        }
+    }
+    function clearText(){
+        $("#reault").val("");
+    }
+</script>
+</body>
+
+</html>

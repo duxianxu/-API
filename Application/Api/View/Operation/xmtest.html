@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>拖拽选址</title>
+    <style>
+        body,html{height:100%;margin:0;width:100%;padding:0;overflow:hidden;font-size:13px}
+        .map{height:100%;width:60%;float:left}
+        #right{color:#444;background-color:#f8f8f8;width:40%;float:left;height:100%}
+        #right input,#start,#stop{margin:4px;margin-left:15px}
+        .title{width:100%;background-color:#dadada}
+        .c{font-weight:600;padding-left:15px;padding-top:4px}
+        #address,#lnglat,#nearestJunction,#nearestPOI,#nearestRoad,.title,#my_url{padding-left:15px}
+    </style>
+    <script src="__JS__/jquery.min.js"></script>
+</head>
+
+<body>
+<div id="container" class="map" tabindex="0"></div>
+<div id='right'>
+    <div>
+        <div class='title'>选择模式</div>
+        <input type='radio' name='mode' value='dragMap' checked>拖拽地图模式</input>
+        </br>
+        <input type='radio' name='mode' value='dragMarker'>拖拽Marker模式</input>
+        </br>
+    </div>
+    <form action="{:U('/Home/API/generateCode')}" onsubmit ="return checkForm();" >
+        <div>
+            <input type="text" name="city_code" id="city_code" placeholder="城市区号" value="010" style="width:50px"/>
+            <input type="text" name="begin_code" id="begin_code" placeholder="起始码" value="1" style="width:80px"/>
+            <input type="text" name="count" id="count" placeholder="数量" value="10" style="width:80px"/>
+            <input type='checkbox' id='isFormal' name="formal" value="0"/>正式码
+            <button type="submit">生成电池码</button>
+        </div>
+    </form>
+    <div>
+        <div class='title'>选址结果 <span id="search_distance" style="color:red;"></span></div>
+        <div class='c'>请求URL:<span id="my_url"></span></div>
+        <div class='c'>经纬度:<span id="lnglat"></span></div>
+        <div class='c'>地址:<span id='address'></span></div>
+        <div class='c'>最近的路口:<span id='nearestJunction'></span></div>
+        <div class='c'>最近的路:<span id='nearestRoad'></span></div>
+        <div class='c'>最近的POI:<span id='nearestPOI'></span></div>
+    </div>
+</div>
+<script type="text/javascript" src="http://webapi.amap.com/maps?v=1.3&key=7461a90fa3e005dda5195fae18ce521b&plugin=AMap.Walking,AMap.MouseTool,AMap.PolyEditor,AMap.CircleEditor,AMap.ToolBar"></script>
+<script src="//webapi.amap.com/ui/1.0/main.js"></script>
+<script type="text/javascript">
+    var markers=[],obj=null,map,count=0;
+    var positionPicker,ruler,walking,polygon,polyArray;
+    var infoWindow = new AMap.InfoWindow({ offset: new AMap.Pixel(0, -15) });
+    $(function(){
+        $("#isFormal").change(function() {
+            $(this).val($(this).prop('checked')?1:0);
+            if($(this).prop('checked')){
+                $("#begin_code").val(10001);
+            }else{
+                $("#begin_code").val(1);
+            }
+        });
+    })
+    function checkForm(){
+        var city_code=$("#city_code").val();
+        if(!city_code){
+            alert("城市区号不能为空");
+            return false;
+        }
+        if(isNaN(city_code)){
+            alert("城市区号为数字");
+            return false;
+        }
+        var begin_code=$("#begin_code").val();
+        if(!begin_code){
+            alert("起始码不能为空");
+            return false;
+        }
+        if(isNaN(begin_code)){
+            alert("起始码为数字");
+            return false;
+        }
+        var count=$("#count").val();
+        if(!count){
+            alert("数量不能为空");
+            return false;
+        }
+        if(isNaN(count)){
+            alert("数量为数字");
+            return false;
+        }
+        return true;
+    }
+    AMapUI.loadUI(['misc/PositionPicker'], function(PositionPicker) {
+        map = new AMap.Map('container', {
+            zoom: 17,
+            center:[116.560661,39.914742]
+        })
+        map.plugin(["AMap.RangingTool"], function() {
+            ruler = new AMap.RangingTool(map);
+            AMap.event.addListener(ruler, "end", function (e) {
+                ruler.turnOff();
+            });
+        });
+        positionPicker = new PositionPicker({
+            mode: 'dragMap',
+            map: map
+        });
+        //步行导航
+        walking = new AMap.Walking({
+            map: map,
+            autoFitView:false,
+        });
+        AMap.event.addListener(walking, "complete", walk_routeCallBack);
+        positionPicker.on('success', function(positionResult) {
+            infoWindow.close();
+            count++;
+            var city=positionResult.regeocode.addressComponent.city;
+            if(city==""){
+                city=positionResult.regeocode.addressComponent.province;
+            };
+            var u="http://api.baojia.com/v2xm/Api/Xmcar/loadMapBicycle?lngX=AAAAAA&latY=BBBBBB&city=CCCCCC&debug=1&test=1";
+            u=u.replace("AAAAAA",positionResult.position.lng).replace("BBBBBB",positionResult.position.lat).replace("CCCCCC",city);
+            $("#my_url").html(u);
+            document.getElementById('lnglat').innerHTML = positionResult.position.lng+","+positionResult.position.lat;
+            document.getElementById('address').innerHTML = positionResult.address;
+            document.getElementById('nearestJunction').innerHTML = positionResult.nearestJunction;
+            document.getElementById('nearestRoad').innerHTML = positionResult.nearestRoad;
+            document.getElementById('nearestPOI').innerHTML = positionResult.nearestPOI;
+            var param={"lngX":positionResult.position.lng,"latY":positionResult.position.lat,"page":"1","pageNum":$("#amount").val(),"hourSupport":"1",
+                "showLevel":0,"radius":10,"adjustLevel":1,"level":16,
+                "province":positionResult.regeocode.addressComponent.province,
+                "city":city,"zone":"","client_id":"218","version":"2.2.0","app_id":"218",
+                "qudao_id":"guanfang","timestamp":new Date().getTime(),"device_model":"","device_os":""};
+            if (count > 1) {
+                $("#search_distance").html("&#12288;加载中...");
+                $.post("{:U('/Api/Xmcar/loadMapBicycle')}", param, function (result) {
+                    if (walking) {
+                        walking.clear();
+                    }
+                    if (result && result.status == 1) {
+                        $("#amount").val(result.price0Count);
+                        var groupAndCar = result.data.groupAndCar;
+                        var shortestId = result.data.shortestId;
+                        if (markers && markers.length > 0) {
+                            $.each(markers, function (i, m) {
+                                m.setMap();
+                            })
+                            markers = [];
+                        }
+                        $("#search_distance").html("&#12288;搜索范围" + result.data.refreshDistance + "米，数据" + result.count + "条，耗时" + result.second + "秒，查询" + result.search_second + "秒，处理" + result.handle_second + "秒，0元车"+result.price0Count+"辆");
+                        for (var k in groupAndCar) {
+                            var icon='http://webapi.amap.com/theme/v1.3/markers/n/mark_b.png';
+                            if (k == shortestId) {
+                                icon='http://webapi.amap.com/theme/v1.3/markers/n/mark_b1.png';
+                            }
+                            var marker = null;
+                            if (groupAndCar[k].isPrice0) {
+                                marker = new AMap.Marker({
+                                    position: [groupAndCar[k].gisLng, groupAndCar[k].gisLat],
+                                    topWhenClick: true,
+                                    map: map,
+                                    icon: 'http://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
+                                    title: "车牌号:" + groupAndCar[k].plateNo,
+                                    extData: {
+                                        rentid: k
+                                    }
+                                });
+                            } else {
+                                marker = new AMap.Marker({
+                                    position: [groupAndCar[k].gisLng, groupAndCar[k].gisLat],
+                                    topWhenClick: true,
+                                    map: map,
+                                    icon:icon,
+                                    title: "车牌号:" + groupAndCar[k].plateNo,
+                                    extData: {
+                                        rentid: k
+                                    }
+                                });
+                            }
+                            marker.content ='图片'+'<br>'+k+'--'+groupAndCar[k].plateNo+'--'+groupAndCar[k].carItemId+'--'+groupAndCar[k].imei+
+                                '</br>最低消费</br>起步价(含保险)</br>计费规则</br>剩余续航里程</br>地址</br>还车网点';
+                            marker.on('click', markerClick);
+                            markers.push(marker);
+                        }
+                        function markerClick(e) {
+                            obj=e;
+                            var id=e.target.getExtData().rentid;
+                            param={"id":id,"lngX":positionResult.position.lng,"latY":positionResult.position.lat,
+                                "city":city,"client_id":"218","version":"2.2.0","app_id":"218",
+                                "qudao_id":"guanfang","timestamp":new Date().getTime(),"device_model":"web","device_os":""};
+                            $.post("{:U('/Api/Xmcar/loadDetails')}", param, function (result) {
+                                if (result && result.status == 1) {
+                                    var content=obj.target.content;
+                                    var pic =result.data.pictureUrls[2];
+                                    var imei= result.data.imei;
+                                    var price = result.data.mixText1;
+                                    var startingPrice= result.data.startingPrice;
+                                    var insurance= result.data.insurance;
+                                    var runningDistance= result.data.runningDistance;
+                                    var distanceText= result.data.distanceText;
+                                    var address= result.data.address;
+                                    var returnText="自由还";
+                                    if(result.data.carReturnCode=="1"){
+                                        //corporationName
+                                        returnText='<a target="_blank" href="'+result.data.returnCrawUrl+'">'+result.data.craw+'</a>';
+                                    }
+                                    content=content.replace('图片','<img style="height:20px;" src="' + pic + '"/>');
+                                    content=content.replace('最低消费','最低消费' +startingPrice+ '元');
+                                    content=content.replace('起步价(含保险)','起步价' +startingPrice+ '元(含保险' +insurance+ '元)');
+                                    content=content.replace('计费规则',price);
+                                    content=content.replace('剩余续航里程','剩余'+runningDistance+'km续航');
+                                    content=content.replace('地址',address+'(距您'+distanceText+')');
+                                    //content=content.replace('还车网点',returnText);
+                                    //infoWindow.setContent(content);
+                                    //infoWindow.open(map,obj.target.getPosition());
+                                    //map.setCenter(positionResult.position);
+                                    //walking.search([positionResult.position.lng, positionResult.position.lat], [e.target.getPosition().lng, e.target.getPosition().lat]);
+                                    param={"car_item_id":result.data.carItemId,"gis_lng":result.data.gisLng,"gis_lat":result.data.gisLat};
+                                    if(polygon){
+                                        map.remove(polygon);
+                                    }
+                                    $.post("{:U('/Api/Test/loadRidingArea')}", param, function (result) {
+                                        if (result && result.status == 1) {
+                                            if(result.in_area==true) {
+                                                content = content.replace('还车网点', returnText);
+                                                content+=",在界内"
+                                            }
+                                            if(result.in_area==false) {
+                                                content = content.replace('还车网点', returnText);
+                                                content+=",在界外"
+                                            }
+                                            infoWindow.setContent(content);
+                                            infoWindow.open(map,obj.target.getPosition());
+                                            map.setCenter(positionResult.position);
+                                            if (result.points && result.points.length > 0){
+                                                polygon = new AMap.Polygon({
+                                                    map: map,
+                                                    path: result.areapoints,
+                                                    strokeColor: "blue",
+                                                    strokeOpacity: 1,
+                                                    strokeWeight: 2,
+                                                    bubble: true,
+                                                    strokeStyle: "dashed",
+                                                    strokeDasharray: [15, 3],
+                                                    fillColor: "#f5deb3",
+                                                    fillOpacity: 0.05
+                                                });
+                                            }
+                                        }else{
+                                            alert(result.msg);
+                                            map.clearMap();
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    }else{
+                        alert(result.msg);
+                        map.clearMap();
+                    }
+                })
+            }
+        });
+        positionPicker.on('fail', function(positionResult) {
+            document.getElementById('lnglat').innerHTML = ' ';
+            document.getElementById('address').innerHTML = ' ';
+            document.getElementById('nearestJunction').innerHTML = ' ';
+            document.getElementById('nearestRoad').innerHTML = ' ';
+            document.getElementById('nearestPOI').innerHTML = ' ';
+        });
+        var onModeChange = function(e) {
+            positionPicker.setMode(e.target.value)
+        }
+        var dragMapMode = document.getElementsByName('mode')[0];
+        var dragMarkerMode = document.getElementsByName('mode')[1];
+        AMap.event.addDomListener(dragMapMode, 'change', onModeChange)
+        AMap.event.addDomListener(dragMarkerMode, 'change', onModeChange);
+        positionPicker.start();
+        map.panBy(0, 1);
+        map.addControl(new AMap.ToolBar({
+            liteStyle: true
+        }))
+    });
+
+    //导航结果展示
+    function walk_routeCallBack(data) {
+        var routes = data.routes;
+        if (routes.length <= 0) {
+            alert("未查找到任何结果!\n建议：\n1.请确保所有字词拼写正确。\n2.尝试不同的关键字。\n3.尝试更宽泛的关键字");
+        }
+        else {
+            //alert($("#distance").html());
+            var time=routes[0].time;
+            var minutes=0,second=0;
+            if(time>0){
+                minutes=parseInt(time/60);
+                second=parseInt(time%60);
+            }
+        }
+        //positionPicker.start();
+    }
+    function clearMarks(){
+        if (markers && markers.length > 0) {
+            $.each(markers, function (i, m) {
+                m.setMap();
+            })
+            markers = [];
+        }
+    }
+</script>
+</body>
+
+</html>

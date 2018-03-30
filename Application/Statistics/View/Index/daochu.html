@@ -1,0 +1,344 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+    <title>小蜜运维操作记录导出</title>
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"  />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="format-detection" content="email=no" />
+    <link rel="stylesheet" href="http://css.baojia.com/s4/c/css/reset.css">
+    <link rel="stylesheet" type="text/css" href="http://css.baojia.com/s4/e/css/m-170713/html5tooltips.css">
+    <link rel="stylesheet" type="text/css" href="http://css.baojia.com/s4/e/css/m-170713/style.css">
+	<link href="__CSS__/datetimepicker.css" rel="stylesheet" type="text/css">
+	<link href="__CSS__/datetimepicker_blue.css" rel="stylesheet" type="text/css">
+	<link href="__CSS__/dropdown.css" rel="stylesheet" type="text/css">
+		<link rel="stylesheet" href="/Public/css/bootstrap.min.css">
+	<script type="text/javascript" src="__JS__/jquery-1.10.2.min.js"></script>
+	<script type="text/javascript" src="__JS__/layer/layer.js"></script>
+	<script type="text/javascript" src="__JS__/bootstrap-datetimepicker.min.js"></script>
+	<script type="text/javascript" src="__JS__/bootstrap-datetimepicker.zh-CN.js" charset="UTF-8"></script>
+	 <!--<link rel="stylesheet" type="text/css" href="../../css/m-170713/style.css">-->
+    <!--[if IE]>
+		<script src="http://cdn.bootcss.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+	<![endif]-->
+	<style type="text/css">
+		.search{width:85%;margin:0 auto;padding:30px 0;background-color:#bef3e8;}
+		.form-group .label-title{width:100px;font-weight:normal;}
+		.btn-primary{background-color:#00af8b;border-color:#00af8b;}
+		.btn-primary:focus,.btn-primary:hover,.btn-primary:active{background-color:#00af8b;border-color:#00af8b;}
+		.btn,.form-control{border:none;}
+	</style>
+</head>
+<body>
+
+	<div class="wrapper" style="margin-top: 0px;">
+
+		<form class="form-inline" style="background-color:#bef3e8;">
+			<div class="search">
+			    <div class="form-group">
+					<select name="cityId" id="cityId" style="width: 120px;height: 32px;margin-right: 10px;">
+						<option value="">请选择城市</option>
+						<volist name="city" id="data">
+							<option value="{$data.city_id}">{$data.name}</option>
+						</volist>
+					</select>
+				</div>
+				<div class="form-group">
+				    全/兼职
+					<select name="job_type" id="job_type" style="width: 100px;height: 32px;margin-right: 10px;">
+						<option value="">全部</option>
+						<option value="1">全职</option>
+						<option value="2">兼职</option>
+					</select>
+				</div>
+				<div class="form-group">
+					<label for="startDate" class="label-title">开始日期</label>
+					<input type="text"  id="startDate" name="startDate" value="" placeholder="选择开始日期"  class='time form-control'>
+				</div>
+				<div class="form-group">
+					<label for="endDate" class="label-title" style="margin-left:30px;">截止日期</label>
+					<input type="text"  id="endDate" name="endDate" value="" placeholder="选择截止日期" class='time form-control'>
+				</div>
+
+				<div class="form-group">
+					<label for="endDate" class="label-title" style="margin-left:30px;">选择员工</label>
+					<input type="text"  id="user_name" name="user_name" value="" placeholder="请输入员工姓名"  class='form-control'>
+					<input type="hidden"  id="uId" name="uId" value="" >
+                    <div id="div1" style="border: solid 1px #999999; width: 197px;margin-left: 133px;display: none;padding-left: 10px;padding-top: 10px;">
+                        <ul id="ul1" >
+                        </ul>
+                    </div>
+					<p style="margin-left: 133px;margin-top: 10px;color: red;font-size:6px;">不选择员工视为导出选中时间段所有人员</p>
+                </div>
+
+				<div class="form-group">
+					<label class="label-title"></label>
+					<button type="button" class="btn btn-primary" id="btnSearch" style="width:100px;background-color:#00af8">导出Excel </button>
+				</div>
+			</div>
+		</form>
+	</div>	
+
+    <div class="wrapper" style="margin-top: 30px;">
+
+		<form class="form-inline" style="background-color:#bef3e8;">
+			<h4 style="padding-top: 20px;">车辆统计导出</h4>
+			<div class="search">
+				<div class="form-group">
+					车牌号
+					<input type="text"  id="plate_no" name="plate_no" value="" placeholder="请输入车牌号" class='form-control' style="width: 120px;margin-right: 10px;">
+				</div>
+				<div class="form-group">
+					<label for="startDate" class="label-title">开始日期</label>
+					<input type="text"  id="start_date" name="start_date" value="" placeholder="选择开始日期"  class='time form-control'>
+				</div>
+				<div class="form-group">
+					<label for="endDate" class="label-title" style="margin-left:30px;">截止日期</label>
+					<input type="text"  id="end_date" name="end_date" value="" placeholder="选择截止日期" class='time form-control'>
+				</div>
+				<div class="form-group">
+					故障下架统计
+					<select name="car_status" id="car_status" style="width: 120px;height: 32px;margin-right: 10px;">
+						<option value="">请选择类型</option>
+						<option value="10">车辆线路损坏</option>
+						<option value="11">车辆丢失部件</option>
+						<option value="12">无法打开电子锁</option>
+						<option value="13">换电无法正常上线</option>
+						<option value="14">无法设防</option>
+						<option value="15">拧车把不走</option>
+						<option value="16">二维码损坏</option>
+						<option value="17">电池丢失并车辆被破坏</option>
+						<option value="18">其他</option>
+					</select>
+				</div>
+
+				<div class="form-group">
+					小修统计
+					<select name="x_type" id="x_type" style="width: 120px;height: 32px;">
+						<option value="">请选择类型</option>
+						<option value="3">脚蹬子缺失</option>
+						<option value="4">车灯损坏</option>
+						<option value="5">车支子松动</option>
+						<option value="6">车灯松动</option>
+						<option value="7">车把松动</option>
+						<option value="8">鞍座丢失</option>
+						<option value="9">二维码丢失</option>
+					</select>
+				</div>
+
+				<div class="form-group">
+					<label class="label-title"></label>
+					<button type="button" class="btn btn-primary" id="btn_search" style="width:100px;background-color:#00af8">导出Excel </button>
+				</div>
+			</div>
+
+		</form>
+
+	</div>	
+</body>
+<script>
+    $(function() {
+        $('.time').datetimepicker({
+            format: 'yyyy-mm-dd',
+            language: "zh-CN",
+            startView: 'month',
+            minView: 'month',
+            todayBtn: true,
+            minuteStep: 30,
+            autoclose: true
+        });
+
+        $("#btnSearch").click(function(){
+              var stime = $('#startDate').val();
+              var etime = $('#endDate').val();
+              var user_name = $('#user_name').val();
+			  var uId = $('#uId').val();
+			  var cityId = $('#cityId').val();
+			  var job_type = $('#job_type').val();
+              var key = "";
+              var val = "";
+              var url = '/statistics/index/recordingExport?type=1';
+
+			  if(stime && etime){
+					key = "time";
+					val = stime+"|"+etime;
+					url +="&"+key+"="+val;
+			  }
+              if(user_name){
+                key = "user_name";
+                val = user_name;
+                url +="&"+key+"="+val;
+              }
+			  if(uId){
+                key = "uId";
+                val = uId;
+                url +="&"+key+"="+val;
+              }
+			  if(cityId){
+                  key = "cityId";
+				  val = cityId;
+				  url +="&"+key+"="+val;
+			  }
+			  if(job_type){
+                  key = "job_type";
+				  val = job_type;
+				  url +="&"+key+"="+val;
+			  }
+              window.location.href = url;
+		});
+		
+		$("#btn_search").click(function(){
+            var stime = $('#start_date').val();
+            var etime = $('#end_date').val();
+            var plate_no = $('#plate_no').val();
+            var car_status = $('#car_status').val();
+            var x_type = $('#x_type').val();
+
+            var key = "";
+            var val = "";
+            var url = '/statistics/index/carCountExport?type=1';
+
+            if(stime && etime){
+                key = "time";
+                val = stime+"|"+etime;
+                url +="&"+key+"="+val;
+            }
+
+            if(plate_no){
+                key = "plate_no";
+                url +="&"+key+"="+plate_no;
+            }
+
+            if(car_status){
+                key = "car_status";
+                url +="&"+key+"="+car_status;
+            }
+
+            if(x_type){
+                key = "x_type";
+                url +="&"+key+"="+x_type;
+            }
+
+            window.location.href = url;
+        });
+
+        $("#user_name").bind("keyup",function(){
+            var  name = $("#user_name").val();
+            $.post("{:U('/Statistics/Index/ygongList')}",{name:name}, function (data) {
+                if(data != ''){
+                    $("#div1").show();
+                    txtchange(data);
+                }else{
+                    $("#div1").hide();
+                }
+            });
+        });
+
+
+        function txtchange(data){
+            ularray=[];
+            //var data=[{1:11},{1:12},{1:22},{1:33},{1:123}];
+            //给ul传入数据
+            var ul=$("#ul1");
+            ul.empty();
+            $.each(data,function(index,item)
+            {
+                var li=$("<li></li>");
+                var span=$("<span></span>").html(item.user_name).attr("data-id",item.user_id);
+                li.append(span);
+                ul.append(li);
+            });
+            onclick(); //让新得到的数组拥有点击功能
+        }
+
+        //span单击事件
+        function onclick(){
+            $("#ul1 li span").click(function()
+            {
+                var otxt=$(this).html();
+                var uIdt=$(this).data("id");
+                $("#user_name").empty().val(otxt);
+                $("#uId").empty().val(uIdt);
+                $("#div1").hide();
+            });
+        };
+    });
+</script>
+</html>
+
+
+<!--<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>Insert title here</title>
+    <style type="text/css">
+        body{margin:0px;padding:0px;}
+        ul{margin:px;padding:0px;list-style-type:none;}
+    </style>
+    <script src="__JS__/jquery-1.10.2.min.js"></script>
+    <script>
+        $(function(){
+            $("#txt").bind("keyup",function(){
+                var  name = $("#txt").val();
+                $.post("{:U('/Statistics/Index/ygongList')}",{name:name}, function (data) {
+//                     console.log(data);
+                    if(data != ''){
+                        $("#div1").show();
+                        txtchange(data);
+                    }else{
+                        $("#div1").hide();
+                    }
+                });
+            });
+        });
+
+        function txtchange(data){
+            ularray=[];
+            //var data=[{1:11},{1:12},{1:22},{1:33},{1:123}];
+            //给ul传入数据
+            var ul=$("#ul1");
+            ul.empty();
+            $.each(data,function(index,item)
+            {
+                var li=$("<li></li>");
+                var span=$("<span></span>").html(item.user_name);
+                li.append(span);
+                ul.append(li);
+            });
+            onclick(); //让新得到的数组拥有点击功能
+        }
+
+        //span单击事件
+        function onclick(){
+            $("#ul1 li span").click(function()
+            {
+                var otxt=$(this).html();
+                $("#txt").empty().val(otxt);
+                $("#div1").hide();
+            });
+        };
+    </script>
+</head>
+
+<body >
+<center>
+    <form>
+        <input id="txt" type="text" />
+        自动提示
+        <div id="div1" style="border: solid 1px; width: 170px;margin-right: 70px;display: none;">
+            <ul id="ul1" >
+            </ul>
+        </div>
+    </form>
+</center>
+</body>
+</html>-->

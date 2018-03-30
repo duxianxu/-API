@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>运维App接口测试</title>
+    <style>
+        body,html{height:100%;margin:0;width:100%;padding:0;overflow:hidden;font-size:13px}
+        .map{height:100%;width:60%;float:left}
+        #right{color:#444;background-color:#f8f8f8;width:40%;float:left;height:100%}
+        #right input,#start,#stop{margin:4px;margin-left:15px}
+        .title{width:100%;background-color:#dadada}
+        button{border:solid 1px;margin-left:15px;background-color:#dadafa}
+        .c{font-weight:600;padding-left:15px;padding-top:4px}
+        #address,#lnglat,#nearestJunction,#nearestPOI,#nearestRoad,.title{padding-left:15px}
+    </style>
+    <script src="__JS__/jquery.min.js"></script>
+</head>
+
+<body>
+<div id="container" class="map" tabindex="0"></div>
+<div id='right'>
+    <div>接口名称:
+        <select id="selAPI">
+            <option value="" checked=checked>请选择接口</option>
+            <option value="car_details">车辆详情</option>
+            <option value="repairOperation">车辆操作接口</option>
+            <option value="find_location">查询车辆位置</option>
+            <option value="repair_report">小修上报上传图片</option>
+            <option value="repair_done">完成小修接口</option>
+            <option value="lose_status">疑失疑难丢失</option>
+            <option value="car_status">单独请求查询车辆状态</option>
+            <option value="repair_record">待小修记录</option>
+        </select>
+        <span id="api_url"></span>
+        <p id="parameter">
+            <span>接口参数：</span>
+        </p>
+        <p><input type="button" value="调用" id="btnTest" style="width:80px;height:40px;text-align:center;margin:auto;display:block;"></p>
+        <p>
+            <span>说明：</span>
+            <p id="describe"></p>
+        </p>
+        <p><textarea id="reault" rows="2" cols="10" style="width:100%;height:200px;" placeholder="返回结果"></textarea></p>
+    </div>
+    <div>
+        <div class='title'>选择模式</div>
+        <input type='radio' name='mode' value='dragMap' checked>拖拽地图模式</input>
+        </br>
+        <input type='radio' name='mode' value='dragMarker'>拖拽Marker模式</input>
+    </div>
+    <div>
+        <button id='start'>开始选点</button>
+        <button id='stop'>关闭选点</button>
+    </div>
+    <div>
+        <div class='title'>选址结果</div>
+        <div class='c'>经纬度:</div>
+        <div id='lnglat'></div>
+        <div class='c'>地址:</div>
+        <div id='address'></div>
+        <div class='c'>最近的路口:</div>
+        <div id='nearestJunction'></div>
+        <div class='c'>最近的路:</div>
+        <div id='nearestRoad'></div>
+        <div class='c'>最近的POI:</div>
+        <div id='nearestPOI'></div>
+        <input type="checkbox" name="" id="">
+    </div>
+</div>
+<script type="text/javascript" src="http://webapi.amap.com/maps?v=1.3&key=7461a90fa3e005dda5195fae18ce521b&plugin=AMap.Walking,AMap.MouseTool,AMap.PolyEditor,AMap.CircleEditor"></script>
+<!-- UI组件库 1.0 -->
+<script src="//webapi.amap.com/ui/1.0/main.js"></script>
+<script type="text/javascript">
+    var map,positionPicker,name='',url="{:U('/Api/Fault/xxxxxx')}";
+    var infoWindow = new AMap.InfoWindow({ offset: new AMap.Pixel(0, -30) });
+    var apiUrl ="";
+    $(function(){
+        $("#selAPI").change(function(){
+            $("#reault").val("");
+            apiUrl ="";
+            name=$(this).val();
+            if(name) {
+                apiUrl =url.replace("xxxxxx",name);
+                // alert(apiUrl);return;
+                $("#api_url").html("http://10.1.11.52/Api/Fault/"+name);
+                // $("#api_url").html("http://abc.com/news/Api/Fault/"+name);
+                switch (name) {
+                    case "car_details":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span>车牌号</span><input type="text" id="plate_no" value="" placeholder="车牌号DD912323"/>'+
+                            '<span>Corporation_id</span><input type="text" id="corporation_id" value="" placeholder="2118"/>'+
+                            '<span>用户ID</span><input type="text" id="uid" value="" placeholder="员工ID1"/>');
+                             $("#describe").html("回收下架sell_status = -10 ;上架 sell_status = 1 ;code【0 用户验证失败,请重新登录，0 参数错误，-1 查询无此车辆，1000 请求成功，-1001 失败】");
+                        break;
+                    case "repairOperation":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                             '<span>车辆ID</span><input type="text" id="rent_content_id" value="" placeholder="车辆ID 295396"/>'+
+                             '<span>车牌号</span><input type="text" id="plate_no" value="" placeholder="车牌号DD919130"/>'+
+                             '<span>用户ID</span><input type="text" id="uid" value="" placeholder="员工ID1"/>'+
+                              '<span>gis_lng</span><input type="text" id="gis_lng" value="" placeholder="经度"/>'+
+                             '<span>gis_lat</span><input type="text" id="gis_lat" value="" placeholder="纬度"/>'+
+                            '<span>操作operation_type</span><input type="text" id="operation_type" value="" placeholder="操作项"/>'+
+                            '<span>car_status</span><input type="text" id="car_status" value="" placeholder="下架回收分为待维修和待调度操作"/>'+
+                            '<span>下架回收车况描述(选填)desc</span><input type="text" id="desc" value="" placeholder="车况"/>');
+                       $("#describe").html("code【0 用户验证失败,请重新登录，0 参数错误，-1000 车辆不存在，-1001 无操作类型，61 上报车辆丢失成功，101  下架回收操作成功 11上架待租操作成功 负数 操作无修改】<br/>【操作传参 ：回收下架（car_status =1待维修 =2 待调度）operation_type = -10 ;上架 operation_type = 1 ; 丢失 operation_type = 6 ；疑失 operation_type = 9；疑难 operation_type = 10；调度确认回收 operation_type = 2;电池丢失 operation_type = 3】");
+                        break;
+                    case "find_location":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span>用户ID</span><input type="text" id="uid" value="" placeholder="员工ID1"/>'+
+                            '<span>工作记录id</span><input type="text" id="id" value="" placeholder="ID 14"/>');
+                        $("#describe").html("ID 操作记录id【1001 成功 -1001失败】");
+                        break;
+                    case "repair_report":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<form action="/Api/Fault/repair_report" method="post" enctype="multipart/form-data">'+
+                            '<span>小修问题:</span>3<input type="checkbox" name="car_status[]" value="3">4<input type="checkbox" name="car_status[]" value="4">5<input type="checkbox" name="car_status[]" value="5">6<input type="checkbox" name="car_status[]" value="6">7<input type="checkbox" name="car_status[]" value="7">'+
+                            '<span>用户ID</span><input type="text" id="uid" name="uid" value="" placeholder="员工ID1"/>'+
+                            '<span>图片</span><input type="file" name="picture" id="picture">'+
+                            '<input type="submit" value="提交">');
+                        $("#describe").html("car_status ：3脚蹬子缺失 4 车灯损坏 5车支子松动 6车灯松动 7车把松动 8鞍座丢失 9二维码丢失");
+                        $("#btnTest").attr("disabled", true);
+                        break;
+                   case "repair_done":
+                         $("#parameter").html('<span>接口参数：</span>' +
+                            '<form action="/news/Api/Fault/repair_done" method="post" enctype="multipart/form-data">'+
+                            '<span>记录id:</span><input type="text" name="id" value="">'+
+                            '<span>用户ID</span><input type="text" id="uid" name="uid" value="" placeholder="员工ID1"/>'+
+                            '<span>车辆ID</span><input type="text" id="rent_content_id" value="" placeholder="车辆ID 295396"/>'+
+                            '<span>车牌号</span><input type="text" name="plate_no" value="" placeholder="车牌号"/>'+
+                            '<span>图片</span><input type="file" name="picture" id="picture">'+
+                            '<input type="submit" value="提交">');
+                        $("#btnTest").attr("disabled", true);
+                            break;
+                    case "lose_status"://DD922320 1500507181 1500508192    DD922320 4062672 344117  1500510210  1500517945
+                        $("#parameter").html('<span>接口参数：</span>' +
+                           '<span>用户ID</span><input type="text" id="uid" value="" placeholder="员工ID1"/>'+
+                           '<span>车辆ID</span><input type="text" id="rent_content_id" value="" placeholder="车辆ID 295396"/>');
+                        $("#describe").html("我返回的值 operate=9疑失;operate=10疑难;operate=7丢失;");
+                        break;
+                    case "car_status":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span>用户ID</span><input type="text" id="uid" value="" placeholder="员工ID1"/>'+
+                           '<span>车辆ID</span><input type="text" id="rent_content_id" value="" placeholder="车辆ID 295396"/>');
+                        $("#describe").html("-10 下架回收；1 上架待租");
+                        break;
+                      case "repair_record":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span>用户ID</span><input type="text" id="uid" value="" placeholder="员工ID1"/>'+
+                           '<span>车辆ID</span><input type="text" id="rent_content_id" value="" placeholder="车辆ID 295396"/>');
+                        // $("#describe").html("-10 下架回收；1 上架待租");
+                        break;    
+                }
+            }else{
+                $("#api_url,#parameter,#describe").empty();
+                $("#reault").val("");
+            }
+        })
+        $("#btnTest").click(function () {
+            var data = {};
+            if (name) {
+                switch (name) {
+                    case "car_details":
+                        data.rent_content_id= $("#parameter").find("input[ID='rent_content_id']").val();
+                        data.plate_no= $("#parameter").find("input[ID='plate_no']").val();
+                        data.uid= $("#parameter").find("input[ID='uid']").val();
+                        data.corporation_id= $("#parameter").find("input[ID='corporation_id']").val();
+                        break;
+                    case "repairOperation":
+                        data.rent_content_id= $("#parameter").find("input[ID='rent_content_id']").val();
+                        data.plate_no= $("#parameter").find("input[ID='plate_no']").val();
+                        data.uid= $("#parameter").find("input[ID='uid']").val();
+                        data.gis_lng= $("#parameter").find("input[ID='gis_lng']").val();
+                        data.gis_lat= $("#parameter").find("input[ID='gis_lat']").val();
+                        data.operation_type= $("#parameter").find("input[ID='operation_type']").val();
+                        data.car_status= $("#parameter").find("input[ID='car_status']").val();
+                        data.desc= $("#parameter").find("input[ID='desc']").val();
+
+                        break;
+                    case "find_location":
+                        data.uid= $("#parameter").find("input[ID='uid']").val();
+                        data.id= $("#parameter").find("input[ID='id']").val();
+                      
+                        break;
+                      case "lose_status":
+                        data.uid= $("#parameter").find("input[ID='uid']").val();
+                        data.rent_content_id= $("#parameter").find("input[ID='rent_content_id']").val();
+                        break;
+                    case "car_status":
+                        data.uid= $("#parameter").find("input[ID='uid']").val();
+                        data.rent_content_id= $("#parameter").find("input[ID='rent_content_id']").val();
+                        break;
+                     case "repair_record":
+                        data.uid= $("#parameter").find("input[ID='uid']").val();
+                        data.rent_content_id= $("#parameter").find("input[ID='rent_content_id']").val();
+                        break; 
+
+                }
+                $('#btnTest').val("调用中...");
+                // alert(apiUrl);return;
+                $.ajax({
+                    url: apiUrl,
+                    data: data,
+                    type: "post",
+                    dataType: "json",
+                    success: function (data) {
+                        $('#btnTest').val("调用");
+                        $("#reault").val(JSON.stringify(data));
+                        if(name=="GetTrack"||name=="GetTrackByOrderID"){
+                            if(data.status==0){
+                                var points=new Array();;
+                                if(data.points.length>0) {
+                                    $.each(data.points,function(i,p){
+                                        points[i]= new Array();
+                                        points[i][0]=p.longitude;
+                                        points[i][1]=p.latitude;
+                                    })
+                                    console.dir(points);
+                                    var polyline = new AMap.Polyline({
+                                        map: map,
+                                        path: points,
+                                        strokeColor: "red",
+                                        strokeOpacity: 1,
+                                        strokeWeight: 2,
+                                        bubble:true,
+                                        strokeStyle: "dashed",
+                                        strokeDasharray:[15,3],
+                                        fillColor: "#f5deb3",
+                                        fillOpacity: 0.05
+                                    });
+                                    //$("#reault").val(polyline.getPath());
+                                }
+                            }
+                        }
+                    }
+                });
+            } else {
+                alert('请选择调试接口');
+            }
+        });
+    })
+    AMapUI.loadUI(['misc/PositionPicker'], function(PositionPicker) {
+        map = new AMap.Map('container', {
+            zoom: 16,
+            center: [116.387772,39.985119],//地图中心点
+            //scrollWheel: false
+        });
+        positionPicker = new PositionPicker({
+            mode: 'dragMap',
+            map: map
+        });
+
+        positionPicker.on('success', function(positionResult) {
+            document.getElementById('lnglat').innerHTML = positionResult.position.lng+","+positionResult.position.lat;
+            document.getElementById('address').innerHTML = positionResult.address+" "+positionResult.regeocode.addressComponent.province+" "+positionResult.regeocode.addressComponent.city;
+            document.getElementById('nearestJunction').innerHTML = positionResult.nearestJunction;
+            document.getElementById('nearestRoad').innerHTML = positionResult.nearestRoad;
+            document.getElementById('nearestPOI').innerHTML = positionResult.nearestPOI;
+        });
+        positionPicker.on('fail', function(positionResult) {
+            document.getElementById('lnglat').innerHTML = ' ';
+            document.getElementById('address').innerHTML = ' ';
+            document.getElementById('nearestJunction').innerHTML = ' ';
+            document.getElementById('nearestRoad').innerHTML = ' ';
+            document.getElementById('nearestPOI').innerHTML = ' ';
+        });
+        var onModeChange = function(e) {
+            positionPicker.setMode(e.target.value)
+        }
+        var startButton = document.getElementById('start');
+        var stopButton = document.getElementById('stop');
+        var dragMapMode = document.getElementsByName('mode')[0];
+        var dragMarkerMode = document.getElementsByName('mode')[1];
+        AMap.event.addDomListener(startButton, 'click', function() {
+            positionPicker.start(map.getBounds().getSouthWest())
+        })
+        AMap.event.addDomListener(stopButton, 'click', function() {
+            positionPicker.stop();
+        })
+        AMap.event.addDomListener(dragMapMode, 'change', onModeChange)
+        AMap.event.addDomListener(dragMarkerMode, 'change', onModeChange);
+        positionPicker.start();
+        map.panBy(0, 1);
+    });
+</script>
+</body>
+
+</html>

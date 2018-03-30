@@ -1,0 +1,1288 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>宝驾掌柜App接口测试</title>
+    <style>
+        body,html{height:100%;margin:0;width:100%;padding:0;overflow:hidden;font-size:13px}
+        .map{height:100%;width:60%;float:left}
+        #right{color:#444;background-color:#f8f8f8;width:40%;float:left;height:100%}
+        #right{overflow-y:scroll;overflow-x:hidden;}
+        #right input,#right select,#start{margin:4px;margin-left:15px}
+        .title{width:100%;background-color:#dadada}
+        .border_red{border-color:#FF0000}
+        button{margin-left:5px;}
+        .c{font-weight:600;padding-left:15px;padding-top:4px}
+        .padding_left_15,.title,.ip{padding-left:15px}
+    </style>
+    <script src="__JS__/jquery.min.js"></script>
+    <script src="__JS__/jquery.cookie.js"></script>
+</head>
+<body>
+<div id="container" class="map" tabindex="0"></div>
+<div id='right'>
+    <div>接口名称:
+        <select id="selAPI">
+            <option value="">请选择接口</option>
+            <option value="GetTaskType">查询任务分类</option>
+            <option value="GetAllTask">查询所有任务</option>
+            <option value="GetTaskByID">查询车辆任务</option>
+            <option value="SendSMSCode">发送短信验证码</option>
+            <option value="Login">登录</option>
+            <option value="GetUserInfo">获取员工信息</option>
+            <option value="GetBrands">查询车辆品牌</option>
+            <!--<option value="Statistics">统计运维和调度车辆</option>
+            <option value="LoadAllXiaomi">查询小蜜车辆</option>
+            <option value="LoadDispatchOrder">查询待处理工单</option>-->
+            <option value="RepairOperation">车辆操控</option>
+            <option value="RealTimeLocation">实时定位记录</option>
+            <option value="OperationByIMEI">IMEI操控车辆</option>
+            <option value="OperationByXAN">测试操控车辆</option>
+            <!--<option value="OperationByIMEIDTZJ">电踏之家操控车辆</option>-->
+            <option value="GetPosition">获取车辆坐标</option>
+            <option value="CorrectivePosition">位置校正</option>
+            <option value="QueryCoding">编码查询</option>
+            <option value="GetCorporations">查询公司列表</option>
+        </select>
+        <input type='checkbox' id='cbTest'/>
+        <input type='checkbox' id='cbXiaoma'/>
+        <input type='input' id='plate_no' value="" data-no="DD911699" style="width:100px;"/>
+        <input type='input' id='uuid' value="" style="width:50px;"/>
+        <span id="return_mode"></span>
+        <br/>
+        测试请求链接：<span id="api_test_url"></span><br/>
+        线上请求链接：<span id="api_url"></span>
+        <p id="parameter">
+            <span>接口参数：</span>
+        </p>
+        <p><input type="button" value="调用" id="btnTest" style="width:80px;height:25px;text-align:center;margin:auto;display:block;"></p>
+        <p>
+            <span>说明：<span id="second"></span></span>
+        <p id="describe"></p>
+        </p>
+        <p><textarea id="reault" rows="2" cols="10" style="width:95%;height:100px;resize:both;margin-left:15px;" placeholder="返回结果"></textarea></p>
+    </div>
+    <div>
+        <!--<div class='title'>选择模式</div>-->
+        <input type='radio' name='mode' value='dragMap' checked>拖拽地图模式</input>
+        <input type="text" id="mobileA" placeholder="手机号" value="" style="width:100px;"/>
+        <select id="selCorporation" style="width:200px;height:22px;"></select>
+        </br>
+        <input type='radio' name='mode' value='dragMarker'>拖拽标记模式</input>
+        <input type="text" id="longitudeA" placeholder="添加标记的经度" value="" style="width:100px;"/>
+        <input type="text" id="latitudeA" placeholder="添加标记的纬度" value="" style="width:100px;"/>
+        <input type="text" id="order_no" placeholder="订单编号" value="720054339483043" style="width:150px;"/>
+    </div>
+    <div>
+        <button id='start'>开始选点</button>
+        <button id='stop'>关闭选点</button>
+        <button id='addMark' title="添加标记覆盖物">添加标记</button>
+        <button id='measureDistance' onClick="startRuler()">开始测距</button>
+        <button id="btnSearchOrder">查询订单</button>
+        <a id="linkOrder"></a>
+    </div>
+    <div>
+        <!--<div class='title'>选址结果</div>-->
+        <div class='c'>经纬度:<span class="padding_left_15" id='lnglat'></span></div>
+        <div class='c'>地址:<a target="_blank" id="statistics_url"><span class="padding_left_15" id='address'></span></a></div>
+        <div class='c'>最近的路口:<span class="padding_left_15" id='nearestJunction'></span></div>
+        <div class='c'>最近的路:<span class="padding_left_15" id='nearestRoad'></span></div>
+        <div class='c'>最近的POI:<span class="padding_left_15" id='nearestPOI'></span></div>
+        <div class='c'>员工信息:<span class="padding_left_15" id='userInfo'></span></div>
+        <div class='c'>公司信息:<span class="padding_left_15" id='corporation'></span></div>
+        <input type="hidden" id="s_url" value="{$statistics_url}"/>
+        <div class='c'>当前时间:<span class="padding_left_15" id="now">{$current_time|date='Y-m-d H:i:s',###}</span></div>
+        <div class='c'>你的IP地址是:<a target='_blank' href='xmtest.html'><span class='ip'>{$ip}</span></a></span></div>
+    </div>
+</div>
+<script type="text/javascript" src="http://webapi.amap.com/maps?v=1.3&key=7461a90fa3e005dda5195fae18ce521b&plugin=AMap.Walking,AMap.MouseTool,AMap.PolyEditor,AMap.CircleEditor"></script>
+<script src="//webapi.amap.com/ui/1.0/main.js?v=1.0.10"></script>
+<script type="text/javascript">
+    var map,positionPicker,circle,name='',url="{:U('/Api/Operation/xxxxxx')}";
+    var infoWindow = new AMap.InfoWindow({ offset: new AMap.Pixel(0, -30) });
+    var apiUrl ="",city="北京市",lng=116.387772,lat=39.985119,markers=[],obj=null,select_city;
+    var ruler,polyline,lineArr,navg,pathSimplifierIns,user_info,corporation_id="",rent_content_id;
+    var area,track,corporations,city_id;
+    $(function(){
+        console.log("上海-贾倩倩(18701909719) 临沂-李强(18611177721) 李军(15210619656) 胡北寒(13241807425) 柳立帅(15510377791) 220054523492790");
+        console.log("沈娜(18730625286)  13021115515 纪德军(18920819030) 韩计栋 18310189014 赵亚林 18513274054 白 13552020801");
+        map = new AMap.Map('container', {
+            zoom: 16,
+            center: [116.387772,39.985119],//地图中心点
+        });
+        AMapUI.loadUI(['misc/PositionPicker'], function(PositionPicker) {
+            map.setMapStyle('amap://styles/light');
+            positionPicker = new PositionPicker({
+                mode: 'dragMap',
+                map: map
+            });
+            map.plugin(["AMap.RangingTool"], function() {
+                ruler = new AMap.RangingTool(map);
+                AMap.event.addListener(ruler, "end", function (e) {
+                    ruler.turnOff();
+                });
+            });
+            positionPicker.on('success', function(positionResult) {
+                city=positionResult.regeocode.addressComponent.city;
+                if(!city) {
+                    city = positionResult.regeocode.addressComponent.province;
+                }
+                lng=positionResult.position.lng;
+                lat=positionResult.position.lat;
+                $(".lng").val(positionResult.position.lng);
+                $(".lat").val(positionResult.position.lat);
+                document.getElementById('lnglat').innerHTML = positionResult.position.lng+","+positionResult.position.lat;
+                document.getElementById('address').innerHTML = positionResult.address;
+                document.getElementById('nearestJunction').innerHTML = positionResult.nearestJunction;
+                document.getElementById('nearestRoad').innerHTML = positionResult.nearestRoad;
+                document.getElementById('nearestPOI').innerHTML = positionResult.nearestPOI;
+            });
+            positionPicker.on('fail', function(positionResult) {
+                document.getElementById('lnglat').innerHTML = ' ';
+                document.getElementById('address').innerHTML = ' ';
+                document.getElementById('nearestJunction').innerHTML = ' ';
+                document.getElementById('nearestRoad').innerHTML = ' ';
+                document.getElementById('nearestPOI').innerHTML = ' ';
+            });
+            var onModeChange = function(e) {
+                positionPicker.setMode(e.target.value)
+            }
+            var startButton = document.getElementById('start');
+            var stopButton = document.getElementById('stop');
+            var addMarkButton= document.getElementById('addMark');
+            var dragMapMode = document.getElementsByName('mode')[0];
+            var dragMarkerMode = document.getElementsByName('mode')[1];
+            AMap.event.addDomListener(addMarkButton, 'click', function() {
+                addMarker();
+            }, false);
+            AMap.event.addDomListener(startButton, 'click', function() {
+                positionPicker.start(map.getBounds().getSouthWest())
+            })
+            AMap.event.addDomListener(stopButton, 'click', function() {
+                positionPicker.stop();
+            })
+            AMap.event.addDomListener(dragMapMode, 'change', onModeChange)
+            AMap.event.addDomListener(dragMarkerMode, 'change', onModeChange);
+            positionPicker.start();
+            map.panBy(0, 1);
+
+            //12
+            marker = new AMap.Marker({
+                icon: "http://webapi.amap.com/theme/v1.3/markers/n/mark_r1.png",
+                position: [116.319126832450,40.033385244337]
+            });
+            marker.setMap(map);
+
+            //14
+            marker = new AMap.Marker({
+                icon: "http://webapi.amap.com/theme/v1.3/markers/n/mark_r2.png",
+                position: [116.319187977820,40.033492361388]
+            });
+            marker.setMap(map);
+
+            //17
+            marker = new AMap.Marker({
+                icon: "http://webapi.amap.com/theme/v1.3/markers/n/mark_r3.png",
+                position: [116.319135851150,40.033379260520]
+            });
+            marker.setMap(map);
+
+            marker = new AMap.Marker({
+                icon: "http://webapi.amap.com/theme/v1.3/markers/n/mark_r4.png",
+                position: [116.317784660380,40.015136940955]
+            });
+            marker.setMap(map);
+
+            /*marker = new AMap.Marker({
+                icon: "http://webapi.amap.com/theme/v1.3/markers/n/mark_r5.png",
+                position: [116.313229000000,40.027643000000]
+            });
+            marker.setMap(map);
+
+            marker = new AMap.Marker({
+                icon: "http://webapi.amap.com/theme/v1.3/markers/n/mark_r6.png",
+                position: [116.317784660380,40.015136940955]
+            });
+            marker.setMap(map);*/
+
+        });
+        $("#statistics_url").attr("href",$("#s_url").val());
+        if($.cookie('user_info')) {
+            user_info = JSON.parse($.cookie('user_info'));
+            if (user_info && user_info.mobile) {
+                var mobile=user_info.mobile;
+                $("#mobileA").val(mobile);
+                $("#userInfo").html(user_info.user_id + " " + user_info.user_name + " " + user_info.mobile + " " + user_info.job_type_text + " " + user_info.role_type+" "+user_info.role_type_text);
+                getUserCorporations(user_info.user_id);
+            }
+        }
+        if($.cookie('order_no')) {
+            $("#order_no").val($.cookie("order_no"));
+        }
+        $("#selCorporation").change(function() {
+            corporation_id = $(this).val();
+            $("#parameter").find("input[ID='corporation_id']").val(corporation_id);
+            $.cookie("corporation_id",corporation_id,{expires:30});
+            var corporation_info="";
+            if(corporations){
+                $.each(corporations,function(i,item){
+                    if(corporation_id==item.id){
+                        select_city=item.city_name;
+                        city_id=item.city_id;
+                        $("#parameter").find("input[ID='city_id']").val(city_id);
+                        $("#parameter").find("input[ID='city']").val(select_city);
+                        map.setCenter([item.gis_lng,item.gis_lat]);
+                        //map.setCity(item.city_name);
+                        corporation_info=item.id+" "+item.name+" "+item.city_id+" "+item.city_name;
+                    }
+                });
+            }
+            $("#corporation").html(corporation_info);
+        });
+        $("#selAPI").change(function(){
+            $("#reault").val("");
+            $("#return_mode").empty();
+            apiUrl ="";
+            name=$(this).val();
+            if(name) {
+                apiUrl =url.replace("xxxxxx",name);
+                $("#api_url").html("http://xiaomi.baojia.com/index.php/Api/Operation/"+name);
+                $("#api_test_url").html("http://xmtest.baojia.com/index.php/Api/Operation/"+name);
+                switch (name) {
+                    case "GetTaskType":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="公司ID"><span style="color:red;">*</span>corporation_id</span><input type="text" id="corporation_id" value="" placeholder="公司ID" style="width:100px;"/>'+
+                            '<span title="员工ID"><span style="color:red;">*</span>user_id</span><input type="text" id="user_id" value="" placeholder="员工ID" style="width:100px;"/><br>'+
+                            '<span title="城市ID"><span style="color:red;">*</span>city_id</span><input type="text" id="city_id" value="'+city_id+'" placeholder="城市ID" style="width:100px;"/>' +
+                            '<span title="车辆品牌ID">brand_id</span><input type="text" id="brand_id" value="" placeholder="车辆品牌ID" style="width:100px;"/>');
+                        $("#describe").html('code【1 加载数据成功，0 暂无车辆，-1 位置不在所属城市，-100 参数不完整】<br/>'+
+                            'job_type【1 全职，2 兼职】<br/>'+
+                            'result【find 寻车任务，storage 回库任务，dispatch 调度任务，change 换电任务，overhaul 检修任务</span>】');
+                        break;
+                    case "SendSMSCode":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span>mobile</span><input type="text" id="mobile" value="" placeholder="手机号"/>');
+                        $("#describe").html("code【1 短信发送成功，0 账号不存在，-1 维修权限已关闭，-2 短信发送失败，-100 参数不完整】");
+                        break;
+                    case "Login":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span>mobile</span><input type="text" id="mobile" value="" placeholder="手机号"/>'+
+                            '<span>uuid</span><input type="text" id="uuid" value="" placeholder="uuid"/>'+
+                            '<span>code</span><input type="text" id="code" value="" placeholder="验证码"/>');
+                        $("#describe").html("code【1 登录成功，0 账号不存在，-1 维修权限已关闭，-2 验证码错误，请重新输入，-3 验证码过期，请刷新后重新获取，-100 参数不完整】<br/>" +
+                            "user【id 编号，user_id 员工id，user_name 员工姓名，job_type 1全职 2兼职，manager_position 职位，mobile 手机号，role_type 员工角色，manual_url 使用手册url】");
+                        if($.cookie('SMSCode')) {
+                            $("#parameter").find("input[ID='code']").val($.cookie('SMSCode'));
+                        }
+                        break;
+                    case "GetUserInfo":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span>user_id</span><input type="text" id="user_id" value="" placeholder="员工ID"/>');
+                        $("#describe").html("code【1 加载数据成功，0 账号不存在，-100 参数不完整】<br/>" +
+                            "user【id 编号，user_id 员工id，user_name 员工姓名，manager_position 职位，mobile 手机号，role_type 员工角色，manual_url 使用手册url】");
+                        break;
+                    case "GetTaskByID":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="员工ID"><span style="color:red;">*</span>user_id</span><input type="text" id="user_id" value="" placeholder="员工ID" style="width:100px;"/>'+
+                            '<span title="rent_content_id"><span style="color:red;">*</span>rent_content_id</span><input type="text" id="rent_content_id" value="315729" placeholder="rent_content_id" style="width:100px;"/>');
+                        $("#describe").html("task 任务列表，have_reservation 0当前员工未预约 1已预约，<span style='color:red;'>all_rent_status 车辆当前所有状态，如：[26, 27, 1]，"+
+                            "all_rent_status_title 车辆当前所有状态，如：[\"用户上报\", \"有电离线\", \"低电\"]</span>");
+                        break;
+                    case "GetAllTask":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="公司ID"><span style="color:red;">*</span>corporation_id</span><input type="text" id="corporation_id" value="" placeholder="公司ID" style="width:100px;"/>'+
+                            '<span title="员工ID"><span style="color:red;">*</span>user_id</span><input type="text" id="user_id" value="" placeholder="员工ID" style="width:100px;"/><br/>'+
+                            '<span title="车辆状态"><span style="color:red;">*</span>rent_status</span><input type="text" id="rent_status" value="" placeholder="车辆状态" style="width:100px;"/>' +
+                            '<span title="任务类型"><span style="color:red;">*</span>task_type</span><input type="text" id="task_type" value="" placeholder="任务类型" style="width:100px;"/>' +
+                            '<span title="城市ID"><span style="color:red;">*</span>city_id</span><input type="text" id="city_id" value="'+city_id+'" placeholder="城市ID" style="width:100px;"/>' +
+                            '<span title="车辆品牌ID">brand_id</span><input type="text" id="brand_id" value="" placeholder="车辆品牌ID" style="width:100px;"/>' +
+                            '<br/><span title="显示所有任务">show_all(1显示所有任务，0显示专属任务)</span><input type="text" id="show_all" value="1" placeholder="1显示所有任务，0显示专属任务" style="width:100px;"/>' +
+                            '<br/>rent_status：<span style="color:red;">1低电，2缺电，3馈电，4无电在线，5无电离线，7两日无单，8有单无程，10越界，15存在故障，16已寻回，17无效盒子，18非稳盒子，' +
+                            '19还车区域外，20已检修，21五日无单，22 4级寻车，23 3级寻车，24 2级寻车，25 1级寻车，26用户上报，27有电离线'+
+                            '</span>，<br/>task_type：<span style="color:red;">1寻车，2回库，3调度，4换电，5检修</span>，多选需用半角逗号隔开，为空查询全部</span>');
+                        $("#describe").html("code【1 加载数据成功，0 暂无车辆，-1 位置不在所属城市，-100 参数不完整】<br/>" +
+                                "task_count 专属任务数量, task_start_count 进行中的专属任务数量<br/>" +
+                            "data【is_personal_task(0非专属任务 1专属任务)，task_type 任务类型(1 寻车任务，2 回库任务，3 调度任务 4 换电任务 5 检修任务)，task_money 任务价格 】");
+                        break;
+                    case "LoadAllXiaomi":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="公司ID"><span style="color:red;">*</span>corporation_id</span><input type="text" id="corporation_id" value="" placeholder="公司ID" style="width:100px;"/>'+
+                            '<span title="员工ID"><span style="color:red;">*</span>user_id</span><input type="text" id="user_id" value="" placeholder="员工ID" style="width:100px;"/><br/>'+
+                            '<span title="高德坐标经度"><span style="color:red;">*</span>lngX</span><input type="text" class="lng" id="lngX" value="'+lng+'" placeholder="高德经度" style="width:100px;"/>'+
+                            '<span title="高德坐标纬度"><span style="color:red;">*</span>latY</span><input type="text" class="lat" id="latY" value="'+lat+'" placeholder="高德纬度" style="width:100px;"/>'+
+                            '<span title="类型"><span style="color:red;">*</span>rent_status</span><input type="text" id="rent_status" value="" placeholder="类型" style="width:100px;"/>' +
+                            '<br/><span title="城市"><span style="color:red;">*<span style="color:red;">city</span><input type="text" id="city" value="'+city+'" placeholder="城市" style="width:100px;"/>' +
+                            '<span title="车辆品牌ID">brand_id</span><input type="text" id="brand_id" value="" placeholder="车辆品牌ID" style="width:100px;"/>' +
+                            '<br/>rent_status：2离线下架，3两日无单，4有单无程，5待小修，6越界下架，7待大修，8待调动，9缺电，10馈电下架，11无电，-1 无电离线，' +
+                            '<span style="font-weight:bold;color:red;">12 丢失缺电，13 丢失馈电下架，14 丢失无电， 15 丢失无电离线，16 丢失离线下架，' +
+                            '17 丢失越界下架，18 丢失待大修，19 丢失待调动，20 低电，21 丢失低电</span>，多选需用半角逗号隔开，为空查询全部</span>');
+                        $("#describe").html("code【task_type 任务类型(1 寻车任务，2 回库任务，3 调度任务 4 换电任务 5 检修任务)，task_money 任务价格】");
+                        break;
+                    case "GetPersonalTask":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="公司ID"><span style="color:red;">*</span>corporation_id</span><input type="text" id="corporation_id" value="" placeholder="公司ID" style="width:100px;"/>'+
+                            '<span title="员工ID"><span style="color:red;">*</span>user_id</span><input type="text" id="user_id" value="" placeholder="员工ID" style="width:100px;"/><br/>'+
+                            '<span title="车辆品牌ID">brand_id</span><input type="text" id="brand_id" value="" placeholder="车辆品牌ID" style="width:100px;"/>');
+                        $("#describe").html("code【1 加载数据成功，0 暂无待处理工单，-1 位置不在所属城市，-100 参数不完整】<br/>" +
+                            "<span style='color:red;font-weight:bold;'>count【待处理工单数】</span><br/>"+
+                            "data【<span style='font-weight:bold;'>order_id 工单id</span>，rent_content_id 车辆id，gis_lng 经度，gis_lat 纬度，" +
+                            "<br><span style='color:red;'><span style='font-weight:bold;'>rent_status</span> 2离线下架，3两日无单，4有单无程，5待小修，6越界下架，7待大修，8待调动，9缺电，10馈电下架，11无电，-1 无电离线，12 丢失缺电，13 丢失馈电下架，14 丢失无电， 15 丢失无电离线，" +
+                            "16 丢失离线下架，17 丢失越界下架，18 丢失待大修，19 丢失待调动，20 低电，21 丢失低电</span>，<br>" +
+                            "<span style='color:blue;'><span style='font-weight:bold;'>create_status_code(派单前状态)</span> 1低电，2缺电，3馈电下架，4无电，5无电离线，6离线下架，7两日无单，8有单无，9待大修，10越界下架，11已入库，12上架待租</span>，<br>" +
+                            "<span style='color:red;'><span style='font-weight:bold;'>verify_status(审核状态)</span> 1已派单 2开始任务 3待审核(结束任务) 不为1的在地图上特殊显示</span>"+
+                            "】");
+                        break;
+                    case "LoadDispatchOrder":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="公司ID"><span style="color:red;">*</span>corporation_id</span><input type="text" id="corporation_id" value="" placeholder="公司ID" style="width:100px;"/>'+
+                            '<span title="员工ID"><span style="color:red;">*</span>user_id</span><input type="text" id="user_id" value="" placeholder="员工ID" style="width:100px;"/><br/>'+
+                            '<span title="高德坐标经度"><span style="color:red;">*</span>lngX</span><input type="text" class="lng" id="lngX" value="'+lng+'" placeholder="高德经度" style="width:100px;"/>'+
+                            '<span title="高德坐标纬度"><span style="color:red;">*</span>latY</span><input type="text" class="lat" id="latY" value="'+lat+'" placeholder="高德纬度" style="width:100px;"/>'+
+                            //'<span title="类型"><span style="color:red;">*</span>rent_status</span><input type="text" id="rent_status" value="" placeholder="类型" style="width:100px;"/>' +
+                            //'<br/><span title="城市"><span style="color:red;">*</span>city</span><input type="text" id="city" value="'+city+'" placeholder="城市" style="width:100px;"/>' +
+                            '<span title="车辆品牌ID">brand_id</span><input type="text" id="brand_id" value="" placeholder="车辆品牌ID" style="width:100px;"/>');
+                        $("#describe").html("code【1 加载数据成功，0 暂无待处理工单，-1 位置不在所属城市，-100 参数不完整】<br/>" +
+                            "<span style='color:red;font-weight:bold;'>count【待处理工单数】</span><br/>"+
+                            "data【<span style='font-weight:bold;'>order_id 工单id</span>，rent_content_id 车辆id，gis_lng 经度，gis_lat 纬度，" +
+                            "<br><span style='color:red;'><span style='font-weight:bold;'>rent_status</span> 2离线下架，3两日无单，4有单无程，5待小修，6越界下架，7待大修，8待调动，9缺电，10馈电下架，11无电，-1 无电离线，12 丢失缺电，13 丢失馈电下架，14 丢失无电， 15 丢失无电离线，" +
+                            "16 丢失离线下架，17 丢失越界下架，18 丢失待大修，19 丢失待调动，20 低电，21 丢失低电</span>，<br>" +
+                            "<span style='color:blue;'><span style='font-weight:bold;'>create_status_code(派单前状态)</span> 1低电，2缺电，3馈电下架，4无电，5无电离线，6离线下架，7两日无单，8有单无，9待大修，10越界下架，11已入库，12上架待租</span>，<br>" +
+                            "<span style='color:red;'><span style='font-weight:bold;'>verify_status(审核状态)</span> 1已派单 2开始任务 3待审核(结束任务) 不为1的在地图上特殊显示</span>"+
+                            "】");
+                        break;
+                    case "Statistics":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="公司ID"><span style="color:red;">*</span>corporation_id</span><input type="text" id="corporation_id" value="" placeholder="公司ID" style="width:100px;"/>'+
+                            '<span title="员工ID"><span style="color:red;">*</span>user_id</span><input type="text" id="user_id" value="" placeholder="员工ID" style="width:100px;"/><br>'+
+                            '<span title="高德坐标经度">lngX</span><input type="text" class="lng" id="lngX" value="'+lng+'" placeholder="高德经度" style="width:100px;"/>'+
+                            '<span title="高德坐标纬度">latY</span><input type="text" class="lat" id="latY" value="'+lat+'" placeholder="高德纬度" style="width:100px;"/>'+
+                            '<span title="城市"><span style="color:red;">*</span>city</span><input type="text" id="city" value="'+city+'" placeholder="城市" style="width:100px;"/>' +
+                            '<br><span title="车辆品牌ID">brand_id</span><input type="text" id="brand_id" value="" placeholder="车辆品牌ID" style="width:100px;"/>');
+                        $("#describe").html('code【1 加载数据成功，0 暂无车辆，-1 位置不在所属城市，-100 参数不完整】<br/>'+
+                            'job_type【1 全职，2 兼职】<br/>'+
+                            'data【total_repair 需运维总数，battery30 缺电，power_shortage 馈电下架，battery0 无电，offline 离线下架，offline_no_battery 无电离线，' +
+                            'no_order 两日无单，no_distance 有单无程，to_repair 待小修，total_dispatch 需调度总数，out_bounds 越界下架，' +
+                            'maintain 待大修，transfer 待调动，<span style="font-weight:bold;color:red;">lose_total 所有丢失，lose_battery30 丢失缺电，lose_offline 丢失离线下架，' +
+                            'lose_offline_battery0 丢失无电离线，lose_out_bounds 丢失越界下架，lose_power_shortage 丢失馈电下架，' +
+                            'lose_battery0 丢失无电，lose_maintain 丢失待大修，lose_transfer 丢失待调动</span>】');
+                        break;
+                    case "GetBrands":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="公司ID"><span style="color:red;">*</span>corporation_id</span><input type="text" id="corporation_id" value="" placeholder="公司ID" style="width:100px;"/>'+
+                            '<span title="城市">city</span><input type="text" id="city" value="'+city+'" placeholder="城市" style="width:100px;"/>');
+                        $("#describe").html("code【1 查询成功，-100 参数不完整】<br/>" +
+                            "brands【brand_id 品牌ID，brand_name 品牌名称】");
+                        break;
+                    case "RepairOperation":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="公司ID"><span style="color:red;">*</span>corporation_id</span><input type="text" id="corporation_id" value="" placeholder="公司ID" style="width:100px;"/>'+
+                            '<span title="员工ID"><span style="color:red;">*</span>user_id</span><input type="text" id="user_id" value="" placeholder="员工ID" style="width:100px;"/><br>'+
+                            '<span title="车辆ID"><span style="color:red;">*</span>rent_content_id</span><input type="text" id="rent_content_id" value="314889" placeholder="车辆ID" style="width:100px;"/>'+
+                            '<br/><span style="color:red;">*</span><span title="操作类型：4=鸣笛 5=设防 6=撤防 7=启动 30=唤醒 34=开舱锁">operation_type</span><input type="text" id="operation_type" value="" placeholder="4=鸣笛 5=设防 6=撤防 7=启动 34=开舱锁 35=换电设防" style="width:350px;"/><br>' +
+                            '<span title="换电操作ID">operationId</span><input type="text" id="operationId" value="" placeholder="换电操作ID" style="width:100px;"/>'+
+                            '<span title="高德坐标经度">gis_lng</span><input type="text" class="lng" id="gis_lng" value="'+lng+'" placeholder="高德经度" style="width:100px;"/>'+
+                            '<span title="高德坐标纬度">gis_lat</span><input type="text" class="lat" id="gis_lat" value="'+lat+'" placeholder="高德纬度" style="width:100px;"/>');
+                        $("#describe").html("带<span style='color:red;'>*</span>号为必传参数，operation_type 操作类型：4=鸣笛 <span style='color:red;'>5=设防(普通设防)</span> 6=撤防 7=启动 30=唤醒<span style='color:red;'>34=开舱锁(需要传高德经度lng和纬度lat) 35=换电设防(需要传换电操作的 operationId)</span>  ");
+                        break;
+                    case "RealTimeLocation":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="公司ID"><span style="color:red;">*</span>corporation_id</span><input type="text" id="corporation_id" value="" placeholder="公司ID" style="width:100px;"/>'+
+                            '<span title="员工ID"><span style="color:red;">*</span>user_id</span><input type="text" id="user_id" value="" placeholder="员工ID" style="width:100px;"/><br/>'+
+                            '<span title="高德坐标经度"><span style="color:red;">*</span>gis_lng</span><input type="text" class="lng" id="gis_lng" value="'+lng+'" placeholder="高德经度" style="width:100px;"/>'+
+                            '<span title="高德坐标纬度"><span style="color:red;">*</span>gis_lat</span><input type="text" class="lat" id="gis_lat" value="'+lat+'" placeholder="高德纬度" style="width:100px;"/>' +
+                            '<br/><button onClick="delete_record()" style="display:none;">删除</button>');
+                        $("#describe").html("带<span style='color:red;'>*</span>号为必传参数</span>  ");
+                        break;
+                    case "OperationByIMEI":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="imei"><span style="color:red;">*</span>imei</span><input type="text" id="imei" value="0865067025340756" placeholder="车辆imei" style="width:200px;"/>'+
+                            '<br/><span style="color:red;">*</span><span title="操作类型：4=鸣笛 5=设防 6=撤防 7=启动 34=开舱锁">operation_type</span><input type="text" id="operation_type" value="" placeholder="4=鸣笛 5=设防 6=撤防 7=启动 34=开舱锁" style="width:200px;"/>');
+                        $("#describe").html("带<span style='color:red;'>*</span>号为必传参数，operation_type 操作类型：4=鸣笛 5=设防 6=撤防 7=启动 34=开舱锁</span>  ");
+                        break;
+                    case "OperationByXAN":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="imei"><span style="color:red;">*</span>imei</span><input type="text" id="imei" value="0865067025340756" placeholder="车辆imei" style="width:200px;"/>'+
+                            '<br/><span style="color:red;">*</span><span title="操作类型：A 启动 B 设防 C 播放语音">operation_type</span><input type="text" id="operation_type" value="C" placeholder="A 启动 B 设防 C 播放语音" style="width:200px;"/>');
+                        $("#describe").html("带<span style='color:red;'>*</span>号为必传参数，operation_type 操作类型：A 启动 B 设防 C 播放语音</span>  ");
+                        break;
+                    case "OperationByIMEIDTZJ":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="imei"><span style="color:red;">*</span>imei</span><input type="text" id="imei" value="865067025720171" placeholder="车辆imei" style="width:100px;" data-orther="865067025956361"/>'+
+                            '<br/><span style="color:red;">*</span><span title="操作类型：4=鸣笛 5=设防 6=撤防 7=启动 34=开舱锁">operation_type</span><input type="text" id="operation_type" value="" placeholder="4=鸣笛 5=设防 6=撤防 7=启动 34=开舱锁" style="width:150px;"/>');
+                        $("#describe").html("带<span style='color:red;'>*</span>号为必传参数，operation_type 操作类型：4=鸣笛 5=设防 6=撤防 7=启动 34=开舱锁</span>  ");
+                        break;
+                    case "GetPosition":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="公司ID"><span style="color:red;">*</span>corporation_id</span><input type="text" id="corporation_id" value="" placeholder="公司ID" style="width:100px;"/>'+
+                            '<span title="员工ID"><span style="color:red;">*</span>user_id</span><input type="text" id="user_id" value="" placeholder="员工ID" style="width:100px;"/>'+
+                            '<span title="车辆ID"><span style="color:red;">*</span>rent_content_id</span><input type="text" id="rent_content_id" value="314889" placeholder="车辆ID" style="width:100px;"/>');
+                        $("#describe").html("code【1 查询成功，-100 参数不完整】<br/>" +
+                            "【gps_status 车辆当前位置，failed_record 最后扫码失败APP定位，last_app 最后手机定位，last_bs 最后基站定位，这四项如果不为空 update_time 最后更新时间，gd_lat 高德纬度，gd_lng 高德经度，bd_lat 百度纬度，bd_lng 百度经度】");
+                        break;
+                    case "CorrectivePosition":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="员工ID"><span style="color:red;">*</span>user_id</span><input type="text" id="user_id" value="" placeholder="员工ID" style="width:100px;"/>'+
+                            '<span title="车辆ID"><span style="color:red;">*</span>rent_content_id</span><input type="text" id="rent_content_id" value="314889" placeholder="车辆ID" style="width:100px;"/><br/>' +
+                            '<span title="高德经度"><span style="color:red;">*</span>lngX</span><input type="text" id="lngX" value="" placeholder="高德经度" style="width:100px;"/>'+
+                            '<span title="高德纬度"><span style="color:red;">*</span>latY</span><input type="text" id="latY" value="" placeholder="高德纬度" style="width:100px;"/>');
+                        $("#describe").html("code【1 更新成功，0 更新失败，-1 查询数据有误，-2 你没有管理这辆车的权限，-100 参数不完整】");
+                        break;
+                    case "QueryCoding":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="员工ID"><span style="color:red;">*</span>user_id</span><input type="text" id="user_id" value="" placeholder="员工ID" style="width:100px;"/>'+
+                            '<span title="编码类型"><span style="color:red;">*</span>query_type</span><input type="text" id="query_type" value="" placeholder="编码类型" style="width:100px;"/>'+
+                            '<span title="编码"><span style="color:red;">*</span>code</span><input type="text" id="code" value="" placeholder="编码" style="width:100px;"/>'+
+                            '<br/><span style="color:red;">query_type 1 车牌号 2 imei 3 流量卡号 4 车架号 5 政府牌照</span>');
+                        $("#describe").html("code【1 查询成功，-100 参数不完整】<br/>" +
+                            "data【plate_no 车牌号，vin 车架号，imei imei号，mobile 流量卡号，government_licence 政府牌照】");
+                        break;
+                    case "GetCorporations":
+                        $("#parameter").html('<span>接口参数：</span>' +
+                            '<span title="员工ID"><span style="color:red;">*</span>user_id</span><input type="text" id="user_id" value="" placeholder="员工ID" style="width:100px;"/>');
+                        $("#describe").html('<span style="color:red;">order_type【1 派单，0 抢单】，show_dispatch【1 显示派单，0 显示抢单】</span>');
+                        break;
+                }
+                if (user_info && user_info.user_id) {
+                    $("#parameter").find("input[ID='mobile']").val(user_info.mobile);
+                    $("#parameter").find("input[ID='user_id']").val(user_info.user_id);
+                    $("#parameter").find("input[ID='corporation_id']").val(corporation_id);
+                    $("#parameter").find("input[ID='city']").val(city);
+                }
+                if(select_city){
+                    $("#parameter").find("input[ID='city']").val(select_city);
+                }
+                if(city_id){
+                    $("#parameter").find("input[ID='city_id']").val(city_id);
+                }
+                if(rent_content_id){
+                    $("#parameter").find("input[ID='rent_content_id']").val(rent_content_id);
+                }
+            }else{
+                $("#api_url,#parameter,#describe").empty();
+            }
+        })
+        $("#btnSearchOrder").click(function () {
+            var order_no=$("#order_no").val();
+            if(!order_no){
+                $("#order_no").addClass("border_red");
+                return false;
+            }
+            order_no=$.trim(order_no);
+            $.cookie("order_no",order_no,{expires:30});
+            $("#order_no").removeClass("border_red");
+            var searchUrl ="{:U('/Api/Test/getOrderTrack?order_no=AAAAA')}";
+            searchUrl=searchUrl.replace("AAAAA",order_no);
+            lineArr = [];
+            map.clearMap();
+            $.get(searchUrl,function(data,status) {
+                if (data.status == 1) {
+                    var log="";
+                    if(data.logs){
+                        $.each(data.logs,function(i,item){
+                            var op="";
+                            if(item.op_command=="A"||item.op_command=="A1"){
+                                op="启动";
+                            }
+                            if(item.op_command=="B"||item.op_command=="B1"){
+                                op="设防";
+                            }
+                            if(item.op_command=="C"){
+                                op="播放语音";
+                            }
+                            log+="\n【"+item.start_time+" "+op+" "+item.op_result+" user_id:"+item.user_id+"】";
+                        });
+                    }
+                    $("#reault").val("订单号【"+data.order_no+"】\n" +
+                        "订单状态【"+data.order_status_test+" 结算状态 "+data.hand_over_state+"】\n" +
+                        "租客【"+data.real_name+" "+data.mobile+" "+data.user_id+"】\n" +
+                        "开始时间【"+data.start_time+" "+data.start+"】\n" +
+                        "结束时间【"+data.end_time+" "+data.end+"】\n" +
+                        "车牌号【"+data.plate_no+" "+data.order_id+"】\n" +
+                        "当前状态【"+data.in_out+" sell_status:"+data.sell_status+data.sell_status_text+" gps"+data.datetime_diff+"】\n" +
+
+                        "还车方式【"+data.return_mode_test+"】\n" +
+                        "rent_content_id【"+data.rent_content_id+"】\n" +
+                        "car_item_id【"+data.car_item_id+"】\n"+
+                        "imei【"+data.imei+"】"+log);
+                    //实时还车网点
+                    if (data.polygon&&data.polygon.length > 0) {
+                        new AMap.Polygon({
+                            map: map,
+                            path: data.polygon,
+                            strokeColor: "yellow",
+                            strokeOpacity: 1,
+                            strokeWeight: 2,
+                            bubble:true,
+                            strokeStyle: "dashed",
+                            strokeDasharray:[15,3],
+                            fillColor: "#f5deb3",
+                            fillOpacity: 0.05
+                        });
+                    }
+                    if(data.cor){
+                        if(data.cor_type==1){
+                            $.each(data.cor,function(i,item){
+                                if(item.corporation_center&&item.return_radius) {
+                                    var lnglat = new AMap.LngLat(item.corporation_center[0],item.corporation_center[1]);
+                                    circle = new AMap.Circle({
+                                        map: map,
+                                        center: lnglat,
+                                        radius: item.return_radius,
+                                        strokeColor: "red",
+                                        strokeOpacity: 1,
+                                        draggable: false,
+                                        strokeWeight: 3,
+                                        strokeStyle:"dashed",
+                                        fillColor: "ee2200",
+                                        fillOpacity:0
+                                    });
+                                }
+                            })
+                        }
+                        if(data.cor_type==2){
+                            //console.dir(data.cor);
+                            new AMap.Polygon({
+                                map: map,
+                                path: data.cor,
+                                strokeColor: "red",
+                                strokeOpacity: 1,
+                                strokeWeight: 2,
+                                bubble:true,
+                                strokeStyle: "dashed",
+                                strokeDasharray:[15,10],
+                                fillColor: "#f5deb3",
+                                fillOpacity: 0.05
+                            });
+                        }
+                    }
+                    if(data.dots) {
+                        console.dir(data.dots);
+                        $.each(data.dots, function (i, item) {
+                            if (item.lng && item.return_radius) {
+                                var lnglat = new AMap.LngLat(item.lng, item.lat);
+                                circle = new AMap.Circle({
+                                    map: map,
+                                    center: lnglat,
+                                    radius: item.return_radius,
+                                    strokeColor: "red",
+                                    strokeOpacity: 1,
+                                    draggable: false,
+                                    strokeWeight: 3,
+                                    strokeStyle: "dashed",
+                                    fillColor: "ee2200",
+                                    fillOpacity: 0
+                                });
+                            }
+                        })
+                    }
+
+                    if(data.current_location){
+                        //console.dir(data.current_location);
+                        var marker = new AMap.Marker({
+                            zIndex:10001,
+                            position:data.current_location,
+                            autoRotation:true,
+                            animation:"AMAP_ANIMATION_BOUNCE",
+                            icon: 'http://webapi.amap.com/theme/v1.3/markers/n/mark_b.png',
+                            map: map
+                        });
+                        marker.setMap(map);
+                    }
+                    if(data.list){
+                        lineArr = [];
+                        var len=data.list.length;
+                        var start,end;
+                        $.each(data.list,function(i,item){
+                            if(i==0){
+                                start=[item.lon,item.lat];
+                            }
+                            if(i==(len-1)){
+                                end=[item.lon,item.lat];
+                            }
+                            if(!isNaN(item.lon)&&!isNaN(item.lat)){
+                                var line=[item.lon,item.lat];
+                                lineArr.push(line);
+                            }
+                        });
+                        if(start){
+                            var marker = new AMap.Marker({
+                                position:start,
+                                draggable:true,
+                                icon: 'http://webapi.amap.com/theme/v1.3/markers/n/start.png',
+                                map: map
+                            });
+                            marker.setMap(map);
+                        }
+                        if(end){
+                            var marker = new AMap.Marker({
+                                position:end,
+                                draggable:true,
+                                icon: 'http://webapi.amap.com/theme/v1.3/markers/n/end.png',
+                                map: map
+                            });
+                            marker.setMap(map);
+                            map.setCenter(end);
+                        }
+                        track = new AMap.Polyline({
+                            path: lineArr,          //设置线覆盖物路径
+                            strokeColor: "blue", //线颜色
+                            strokeOpacity: 1,       //线透明度
+                            strokeWeight:1,        //线宽
+                            strokeStyle: "dashed",   //线样式 solid
+                            strokeDasharray: [10, 5] //补充线样式
+                        });
+                        track.setMap(map);
+                        //可骑行区域
+                        if (data.ridding_area&&data.ridding_area.length > 0) {
+                            new AMap.Polygon({
+                                map: map,
+                                path: data.ridding_area,
+                                strokeColor: "yellow",
+                                strokeOpacity: 1,
+                                strokeWeight: 2,
+                                bubble:true,
+                                strokeStyle: "dashed",
+                                strokeDasharray:[15,3],
+                                fillColor: "#f5deb3",
+                                fillOpacity: 0.05
+                            });
+                        }
+                        //可骑行区域快照
+                        if (data.area&&data.area.length > 0) {
+                            polyArray =data.area;
+                            area = new AMap.Polygon({
+                                map: map,
+                                path: polyArray,
+                                strokeColor: "purple",
+                                strokeOpacity: 1,
+                                strokeWeight: 2,
+                                bubble:true,
+                                strokeStyle: "dashed",
+                                strokeDasharray:[10,5],
+                                fillColor: "#f5deb3",
+                                fillOpacity: 0.05
+                            });
+                        }
+                    }
+                }
+            });
+            var linkUrl ="{:U('/Api/Test/index?order_no=AAAAA')}";
+            linkUrl=linkUrl.replace("AAAAA",order_no);
+            $("#linkOrder").attr("href",linkUrl).attr("target","_blank");
+            var orderNo = '<span id="orderNo">查看<span>';
+            $("#linkOrder").html(orderNo);
+            //$('#orderNo').click();
+        });
+        $("#btnTest").click(function () {
+            map.clearMap();
+            var data = {version:"test",test:$('#cbTest').prop('checked')?1:0};
+            var plate_no=$("#plate_no").val();
+            if($('#cbXiaoma').prop('checked')){
+                if(plate_no) {
+                    name = "details";
+                    apiUrl ="{:U('/Api/Test/details')}";// url.replace("xxxxxx", name);
+                    $("#api_url").html("");
+                }
+            }else{
+                name=$("#selAPI").val();
+                apiUrl =url.replace("xxxxxx",name);
+                $("#api_url").html("http://xiaomi.baojia.com/index.php/Api/Operation/"+name);
+            }
+            if (!name) {
+                $('#btnTest,#reault').val("请选择调试接口");
+                alert('请选择调试接口');
+                return false;
+            }
+            switch (name) {
+                case "GetTaskType":
+                    data.corporation_id=$("#parameter").find("input[ID='corporation_id']").val();
+                    data.user_id= $("#parameter").find("input[ID='user_id']").val();
+                    data.city_id= $("#parameter").find("input[ID='city_id']").val();
+                    data.brand_id= $("#parameter").find("input[ID='brand_id']").val();
+                    break;
+                case "SendSMSCode":
+                    data.mobile= $("#parameter").find("input[ID='mobile']").val();
+                    break;
+                case "Login":
+                    data.mobile= $("#parameter").find("input[ID='mobile']").val();
+                    data.code= $("#parameter").find("input[ID='code']").val();
+                    break;
+                case "GetTaskByID":
+                    data.rent_content_id= $("#parameter").find("input[ID='rent_content_id']").val();
+                    data.user_id= $("#parameter").find("input[ID='user_id']").val();
+                    break;
+                case "GetAllTask":
+                    data.user_id= $("#parameter").find("input[ID='user_id']").val();
+                    data.city_id= $("#parameter").find("input[ID='city_id']").val();
+                    data.brand_id= $("#parameter").find("input[ID='brand_id']").val();
+                    data.rent_status= $("#parameter").find("input[ID='rent_status']").val();
+                    data.task_type= $("#parameter").find("input[ID='task_type']").val();
+                    data.corporation_id=$("#parameter").find("input[ID='corporation_id']").val();
+                    data.show_all=$("#parameter").find("input[ID='show_all']").val();
+                    break;
+                case "LoadAllXiaomi":
+                    data.user_id= $("#parameter").find("input[ID='user_id']").val();
+                    data.lngX= $("#parameter").find("input[ID='lngX']").val();
+                    data.latY= $("#parameter").find("input[ID='latY']").val();
+                    data.city= $("#parameter").find("input[ID='city']").val();
+                    data.brand_id= $("#parameter").find("input[ID='brand_id']").val();
+                    data.rent_status= $("#parameter").find("input[ID='rent_status']").val();
+                    data.corporation_id=$("#parameter").find("input[ID='corporation_id']").val();
+                    break;
+                case "GetPersonalTask":
+                    data.user_id= $("#parameter").find("input[ID='user_id']").val();
+                    data.brand_id= $("#parameter").find("input[ID='brand_id']").val();
+                    data.corporation_id=$("#parameter").find("input[ID='corporation_id']").val();
+                    break;
+                case "LoadDispatchOrder":
+                    data.user_id= $("#parameter").find("input[ID='user_id']").val();
+                    data.lngX= $("#parameter").find("input[ID='lngX']").val();
+                    data.latY= $("#parameter").find("input[ID='latY']").val();
+                    data.city= $("#parameter").find("input[ID='city']").val();
+                    data.brand_id= $("#parameter").find("input[ID='brand_id']").val();
+                    data.corporation_id=$("#parameter").find("input[ID='corporation_id']").val();
+                    break;
+                case "Statistics":
+                    data.corporation_id=$("#parameter").find("input[ID='corporation_id']").val();
+                    data.user_id= $("#parameter").find("input[ID='user_id']").val();
+                    data.city= $("#parameter").find("input[ID='city']").val();
+                    data.lngX= $("#parameter").find("input[ID='lngX']").val();
+                    data.latY= $("#parameter").find("input[ID='latY']").val();
+                    data.brand_id= $("#parameter").find("input[ID='brand_id']").val();
+                    break;
+                case "GetBrands":
+                    data.city= $("#parameter").find("input[ID='city']").val();
+                    data.corporation_id=$("#parameter").find("input[ID='corporation_id']").val();
+                    break;
+                case "GetUserInfo":
+                    data.user_id= $("#parameter").find("input[ID='user_id']").val();
+                    break;
+                case "RepairOperation":
+                    data.corporation_id=$("#parameter").find("input[ID='corporation_id']").val();
+                    data.user_id= $("#parameter").find("input[ID='user_id']").val();
+                    data.rent_content_id= $("#parameter").find("input[ID='rent_content_id']").val();
+                    data.operation_type= $("#parameter").find("input[ID='operation_type']").val();
+                    data.gis_lng= $("#parameter").find("input[ID='gis_lng']").val();
+                    data.gis_lat= $("#parameter").find("input[ID='gis_lat']").val();
+                    data.operationId= $("#parameter").find("input[ID='operationId']").val();
+                    break;
+                case "RealTimeLocation":
+                    data.user_id= $("#parameter").find("input[ID='user_id']").val();
+                    data.gis_lng= $("#parameter").find("input[ID='gis_lng']").val();
+                    data.gis_lat= $("#parameter").find("input[ID='gis_lat']").val();
+                    data.corporation_id=$("#parameter").find("input[ID='corporation_id']").val();
+                    break;
+                case "OperationByIMEI":
+                    data.imei=$.trim($("#parameter").find("input[ID='imei']").val());
+                    data.operation_type= $("#parameter").find("input[ID='operation_type']").val();
+                    break;
+                case "OperationByXAN":
+                    data.imei=$.trim($("#parameter").find("input[ID='imei']").val());
+                    data.operation_type= $("#parameter").find("input[ID='operation_type']").val();
+                    break;
+                case "OperationByIMEIDTZJ":
+                    data.imei=$.trim($("#parameter").find("input[ID='imei']").val());
+                    data.operation_type= $("#parameter").find("input[ID='operation_type']").val();
+                    break;
+                case "GetPosition":
+                    data.corporation_id=$("#parameter").find("input[ID='corporation_id']").val();
+                    data.user_id= $("#parameter").find("input[ID='user_id']").val();
+                    data.rent_content_id= $("#parameter").find("input[ID='rent_content_id']").val();
+                    break;
+                case "CorrectivePosition":
+                    data.user_id= $("#parameter").find("input[ID='user_id']").val();
+                    data.rent_content_id= $("#parameter").find("input[ID='rent_content_id']").val();
+                    data.lngX= $("#parameter").find("input[ID='lngX']").val();
+                    data.latY= $("#parameter").find("input[ID='latY']").val();
+                    break;
+                case "QueryCoding":
+                    data.user_id= $("#parameter").find("input[ID='user_id']").val();
+                    data.query_type= $("#parameter").find("input[ID='query_type']").val();
+                    data.code= $("#parameter").find("input[ID='code']").val();
+                    break;
+                case "GetCorporations":
+                    data.user_id= $("#parameter").find("input[ID='user_id']").val();
+                    break;
+                case "details":
+                    data.plate_no=plate_no;
+                    break;
+            }
+            data.uuid=$("#uuid").val();
+            data.device_os="web";
+            $('#btnTest,#reault').val("调用中...");
+            $("#second").empty();
+            if(polyline){
+                polyline.setMap();
+            }
+            ajax(apiUrl,data);
+        });
+        $("#mobileA").blur(function(){
+            $.cookie("corporation_id",null);
+            var mobile=$.trim($(this).val());
+            if(mobile){
+                if(!(/^1[34578]\d{9}$/.test(mobile))){
+                    $(this).addClass("border_red");
+                    return false;
+                }
+                $(this).removeClass("border_red");
+                var url="{:U('/Api/Operation/GetUserInfoByMobile?mobile=AAAAAA')}";
+                url=url.replace("AAAAAA",mobile);
+                $.get(url,function(data,status){
+                    if(data.code==1){
+                        $.cookie('user_info',JSON.stringify(data.user),{expires:30});
+                        user_info=JSON.parse($.cookie('user_info'));
+                        getUserCorporations(user_info.user_id);
+                        if(user_info&&user_info.mobile){
+                            $("#mobileA").val(user_info.mobile);
+                            $("#uuid").val(user_info.authority);
+                            $("#userInfo").html(user_info.user_id+" "+user_info.user_name+" "+user_info.mobile+" "+user_info.job_type_text+" "+user_info.role_type+" "+user_info.role_type_text);
+                            $("#parameter").find("input[ID='mobile']").val(user_info.mobile);
+                            $("#parameter").find("input[ID='user_id']").val(user_info.user_id);
+                            $("#parameter").find("input[ID='corporation_id']").val(corporation_id);
+                            $("#parameter").find("input[ID='city']").val(city);
+                        }
+                    }else{
+                        $("#userInfo").html(data.message);
+                    }
+                });
+            }
+        });
+    })
+    function getUserCorporations(uid){
+        var url="{:U('/Api/Operation/GetUserCorporations?user_id=AAAAAA')}";
+        url=url.replace("AAAAAA",uid);
+        var corporation_info="";
+        $.get(url,function(data,status){
+            if(data.code==1){
+                if (data.corporations) {
+                    corporations=data.corporations;
+                    $("#selCorporation").empty();
+                    var inFlag=false,firstId="";
+                    $.each(data.corporations,function(i,item){
+                        if(i==0){
+                            firstId=item.id;
+                        }
+                        //console.log(corporation_id);
+                        if(corporation_id&&!isNaN(corporation_id)) {
+                            if (corporation_id == item.id) {
+                                inFlag=true;
+                                select_city=item.city_name;
+                                city_id=item.city_id;
+                                corporation_info = item.id + " " + item.name + " " + item.city_id + " " + item.city_name;
+                            }
+                        }else{
+                            if(i==0){
+                                //console.log("city_name:"+item.city_name);
+                                //map.setCity(item.city_name);
+                                map.setCenter([item.gis_lng,item.gis_lat]);
+                                select_city=item.city_name;
+                                city_id=item.city_id;
+                                corporation_id=item.id;
+                                corporation_info = item.id + " " + item.name + " " + item.city_id + " " + item.city_name;
+                                $.cookie("corporation_id",corporation_id,{expires:30});
+                            }
+                        }
+                        $("<option value='"+item.id+"' data-id='"+item.id+"' data-name='"+item.name+"' data-city_id='"+item.city_id+"' data-city_name='"+item.city_name+"'>"+item.name+"</option>").appendTo($("#selCorporation"));
+                    });
+                    $("#selCorporation").val(corporation_id);
+                    if(!inFlag){
+                        $("#selCorporation").val(firstId);
+                    }
+                }
+                user_info=JSON.parse($.cookie('user_info'));
+                if(user_info&&user_info.mobile){
+                    $("#corporation").html(corporation_info);
+                }
+            }else{
+                $("#corporation").html(data.message);
+            }
+        });
+    }
+    function ajax(apiUrl,data){
+        $('<div id="loadingTip">加载数据，请稍候...</div>').appendTo(document.body);
+        $.ajax({
+            url: apiUrl,
+            data: data,
+            type: "post",
+            dataType: "json",
+            success: function (data) {
+                $('#loadingTip').remove();
+                infoWindow.close();
+                map.clearMap();
+                $('#btnTest').val("调用");
+                $("#reault").val(JSON.stringify(data));
+                if(name=="LoadAllXiaomi"){
+                    map.clearMap();
+                    if (data && data.code == 1&&data.data) {
+                        $("#second").html("耗时"+data.second+"秒");
+                        var xm = data.data;
+                        $.each(xm,function(i,item){
+                            var pic = "http://pic.baojia.com/s/"+item.picture_url;
+                            var rent_status=item.rent_status;
+                            var status="";
+                            var icon="";
+                            //2离线下架，3两日无单，4有单无程，5待小修，6越界下架，7待大修，8待调动，9缺电，10馈电下架，11无电
+                            switch(rent_status){
+                                case 1:
+                                    status="1馈电下架";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b1.png";
+                                    break;
+                                case 2:
+                                    status="2离线下架";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b2.png";
+                                    break;
+                                case 3:
+                                    status="3两日无单";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b3.png";
+                                    break;
+                                case 4:
+                                    status="4有单无程";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b4.png";
+                                    break;
+                                case 5:
+                                    status="5待小修";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b5.png";
+                                    break;
+                                case 6:
+                                    status="6越界下架";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b6.png";
+                                    break;
+                                case 7:
+                                    status="7待大修";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b7.png";
+                                    break;
+                                case 8:
+                                    status="8待调动";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b8.png";
+                                    break;
+                                case 9:
+                                    status="9缺电";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b9.png";
+                                    break;
+                                case 10:
+                                    status="10馈电下架";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b10.png";
+                                    break;
+                                case 11:
+                                    status="11无电";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_r10.png";
+                                    break;
+                                case -1:
+                                    status="-1无电离线";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_r1.png";
+                                    break;
+                            }
+                            var marker = new AMap.Marker({
+                                position: [item.gis_lng, item.gis_lat],
+                                icon: icon,
+                                offset: new AMap.Pixel(-12, -36),
+                                map: map
+                            });
+                            marker.content = item.plate_no + '--'+ item.rent_content_id + '--'+ item.imei+'--电量'+item.residual_battery+'<br/><hr/>' + item.gis_lng + ',' + item.gis_lat + '<br/><hr/>' + status;
+                            marker.on('click', markerClick);
+                        })
+                    }
+                }
+                if(name=="LoadDispatchOrder"){
+                    map.clearMap();
+                    if (data && data.code == 1&&data.data) {
+                        $("#second").html("耗时"+data.second+"秒");
+                        var xm = data.data;
+                        $.each(xm,function(i,item){
+                            var pic = "http://pic.baojia.com/s/"+item.picture_url;
+                            var rent_status=item.rent_status;
+                            var status="";
+                            var icon="";
+                            //2离线下架，3两日无单，4有单无程，5待小修，6越界下架，7待大修，8待调动，9缺电，10馈电下架，11无电
+                            switch(rent_status){
+                                case 1:
+                                    status="1馈电下架";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b1.png";
+                                    break;
+                                case 2:
+                                    status="2离线下架";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b2.png";
+                                    break;
+                                case 3:
+                                    status="3两日无单";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b3.png";
+                                    break;
+                                case 4:
+                                    status="4有单无程";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b4.png";
+                                    break;
+                                case 5:
+                                    status="5待小修";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b5.png";
+                                    break;
+                                case 6:
+                                    status="6越界下架";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b6.png";
+                                    break;
+                                case 7:
+                                    status="7待大修";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b7.png";
+                                    break;
+                                case 8:
+                                    status="8待调动";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b8.png";
+                                    break;
+                                case 9:
+                                    status="9缺电";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b9.png";
+                                    break;
+                                case 10:
+                                    status="10馈电下架";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_b10.png";
+                                    break;
+                                case 11:
+                                    status="11无电";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_r10.png";
+                                    break;
+                                case -1:
+                                    status="-1无电离线";
+                                    icon="http://webapi.amap.com/theme/v1.3/markers/n/mark_r1.png";
+                                    break;
+                            }
+                            var marker = new AMap.Marker({
+                                position: [item.gis_lng, item.gis_lat],
+                                icon: icon,
+                                offset: new AMap.Pixel(-12, -36),
+                                map: map
+                            });
+                            marker.content = item.plate_no + '--'+ item.rent_content_id +'--【'+ item.gis_lng + ',' + item.gis_lat+
+                                '】--create_status_code:'+item.create_status_code+'--rent_status:'+rent_status;
+                            marker.on('click', markerClick);
+                        })
+                    }
+                }
+                if(name=="GetPosition"){
+                    if (data && data.code == 1) {
+                        map.clearMap();
+                        if(data.gps_status){
+                            var marker = new AMap.Marker({
+                                position: [data.gps_status.gd_lng, data.gps_status.gd_lat],
+                                icon: 'http://webapi.amap.com/theme/v1.3/markers/n/mark_b2.png',
+                                map: map
+                            });
+                        }
+                        if(data.failed_record){
+                            var marker = new AMap.Marker({
+                                position: [data.failed_record.gd_lng, data.failed_record.gd_lat],
+                                icon: 'http://webapi.amap.com/theme/v1.3/markers/n/mark_b3.png',
+                                map: map
+                            });
+                        }
+                        if(data.last_app){
+                            var marker = new AMap.Marker({
+                                position: [data.last_app.gd_lng, data.last_app.gd_lat],
+                                icon: 'http://webapi.amap.com/theme/v1.3/markers/n/mark_b4.png',
+                                map: map
+                            });
+                        }
+                    }
+                }
+                if(name=="Statistics") {
+                    if (data && data.code == 1) {
+                        var html="需运维总数<span style='color:red;'>("+data.result.maintain_total+")</span>"
+                            +"，需调度总数<span style='color:red;'>("+data.result.dispatch_total+")</span>"
+                            +"，丢失总数<span style='color:red;'>("+data.result.lose_total+")</span>";
+                        $("#second").html(html);
+                    }
+                }
+                if(name=="details"){
+                    if (data && data.code == 1) {
+                        rent_content_id=data.data.id;
+                        $("#return_mode").html(data.data.return_mode+data.data.return_mode_test);
+                        if(pathSimplifierIns) {
+                            navg.destroy();
+                            pathSimplifierIns.clearPathNavigators();
+                        }
+                        map.clearMap();
+                        if(data.data.car_gd_latitude&&data.data.car_gd_longitude){
+                            var marker = new AMap.Marker({
+                                position: [data.data.car_gd_longitude,data.data.car_gd_latitude],
+                                draggable:true,
+                                icon: 'http://webapi.amap.com/theme/v1.3/markers/n/mark_r.png',
+                                map: map
+                            });
+                            marker.setMap(map);
+                            map.setCenter(marker.getPosition());
+                            // 自定义构造AMap.Marker对象  var point = new AMap.LngLat(lng,lat); // 创建点坐标
+                        }
+                        if(data.data.redis&&data.data.redis_gd_latitude&&data.data.redis_gd_longitude){
+                            var marker = new AMap.Marker({
+                                position: [data.data.redis_gd_longitude,data.data.redis_gd_latitude],
+                                draggable:true,
+                                icon: 'http://webapi.amap.com/theme/v1.3/markers/n/mark_b1.png',
+                                map: map
+                            });
+                            marker.setMap(map);
+                        }
+                        if(data.data.order_no){
+                            $("#order_no").val(data.data.order_no);
+                        }
+                        if (data.data.polygon && data.data.polygon.length > 0) {
+                            polygon = new AMap.Polygon({
+                                map: map,
+                                path: data.data.polygon,
+                                strokeColor: "green",
+                                strokeOpacity: 1,
+                                strokeWeight: 2,
+                                bubble: true,
+                                strokeStyle: "dashed",
+                                strokeDasharray: [15, 3],
+                                fillColor: "#f5deb3",
+                                fillOpacity: 0.05
+                            });
+                        }
+
+                        if(data.data.user_return){
+                            if(data.data.user_return.start){
+                                //console.dir(data.data.user_return);
+                                var marker = new AMap.Marker({
+                                    position: [data.data.user_return.start.lon,data.data.user_return.start.lat],
+                                    draggable:true,
+                                    icon: 'http://webapi.amap.com/theme/v1.3/markers/n/start.png',
+                                    map: map
+                                });
+                                marker.setMap(map);
+                            }
+                            if(data.data.user_return.end){
+                                var marker = new AMap.Marker({
+                                    position: [data.data.user_return.end.lon,data.data.user_return.end.lat],
+                                    draggable:true,
+                                    icon: 'http://webapi.amap.com/theme/v1.3/markers/n/end.png',
+                                    map: map
+                                });
+                                marker.setMap(map);
+                            }
+
+                            if(data.data.user_return.track&&data.data.user_return.track.length>0) {
+                                lineArr = [];
+                                $.each(data.data.user_return.track,function(i,item){
+                                    var line=[item.longitude,item.latitude];
+                                    lineArr.push(line);
+                                });
+                                track = new AMap.Polyline({
+                                    path: lineArr,          //设置线覆盖物路径
+                                    strokeColor: "blue", //线颜色
+                                    strokeOpacity: 1,       //线透明度
+                                    strokeWeight:1,        //线宽
+                                    strokeStyle: "dashed",   //线样式 solid
+                                    strokeDasharray: [10, 5] //补充线样式
+                                });
+                                track.setMap(map);
+                                /*AMapUI.load(['ui/misc/PathSimplifier', 'lib/$'], function (PathSimplifier, $) {
+                                    if (!PathSimplifier.supportCanvas) {
+                                        alert('当前环境不支持 Canvas！');
+                                        return;
+                                    }
+                                    pathSimplifierIns = new PathSimplifier({
+                                        zIndex: 100,
+                                        //autoSetFitView:false,
+                                        map: map, //所属的地图实例
+                                        getPath: function (pathData, pathIndex) {
+                                            return pathData.path;
+                                        },
+                                        getHoverTitle: function (pathData, pathIndex, pointIndex) {
+                                            if (pointIndex >= 0) {
+                                                //point
+                                                return pathData.name + '，点：' + pointIndex + '/' + pathData.path.length;
+                                            }
+                                            return pathData.name + '，点数量' + pathData.path.length;
+                                        },
+                                        renderOptions: {
+                                            renderAllPointsIfNumberBelow: 100 //绘制路线节点，如不需要可设置为-1
+                                        }
+                                    });
+                                    window.pathSimplifierIns = pathSimplifierIns;
+                                    //设置数据
+                                    pathSimplifierIns.setData([{
+                                        name: '路线0',
+                                        path: lineArr
+                                    }]);
+                                    //对第一条线路（即索引 0）创建一个巡航器
+                                    navg = pathSimplifierIns.createPathNavigator(0, {
+                                        loop: false, //循环播放
+                                        speed: 1000 //巡航速度，单位千米/小时
+                                    });
+                                    navg.start();
+                                });*/
+                            }
+                        }
+
+                        $.post("{:U('/Api/Test/loadRidingArea')}", {"car_item_id":data.data.car_item_id}, function (result) {
+                            if (result && result.status == 1) {
+                                if (result.areapoints && result.areapoints.length > 0) {
+                                    polygon = new AMap.Polygon({
+                                        map: map,
+                                        path: result.areapoints,
+                                        strokeColor: "blue",
+                                        strokeOpacity: 1,
+                                        strokeWeight: 2,
+                                        bubble: true,
+                                        strokeStyle: "dashed",
+                                        strokeDasharray: [15, 3],
+                                        fillColor: "#f5deb3",
+                                        fillOpacity: 0.05
+                                    });
+                                }
+                            }else{
+                                alert(result.msg);
+                                map.clearMap();
+                            }
+                        });
+                    }
+                }
+            },
+            error:function(){
+                $('#loadingTip').remove();
+            }
+        });
+    }
+    function markerClick(e) {
+        obj=e;
+        infoWindow.setContent(e.target.content);
+        infoWindow.open(map,e.target.getPosition());
+    }
+    function addMarker() {
+        map.clearMap();
+        var longitude=$("#longitudeA").val();
+        var latitude=$("#latitudeA").val();
+        //console.log(longitude);
+        if(longitude&&latitude) {
+            var marker = new AMap.Marker({
+                icon: "http://webapi.amap.com/theme/v1.3/markers/n/mark_b.png",
+                position: [longitude,latitude]
+            });
+            marker.setMap(map);
+        }else{
+            alert("经纬度不能为空")
+        }
+    }
+    function startRuler(){
+        ruler.turnOn();
+    }
+    function clearMarks(){
+        //map.clearMap();
+        if (markers) {
+            $.each(markers, function (i, m) {
+                if(m){
+                    m.setMap();
+                }
+            })
+            markers = [];
+        }
+        if(polyline){
+            polyline.setMap();
+        }
+        if(circle){
+            circle.setMap();
+        }
+    }
+</script>
+</body>
+
+</html>

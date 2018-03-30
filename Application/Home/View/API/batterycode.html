@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>生成并导出电池码</title>
+    <script src="__JS__/jquery.min.js"></script>
+</head>
+
+<body>
+<div id="container" class="map" tabindex="0">
+    <form action="{:U('/Home/API/generateCode')}" onsubmit ="return checkForm();" >
+        <div>
+            <input type="text" name="city_code" id="city_code" placeholder="城市区号" value="010" style="width:50px"/>
+            <input type="text" name="begin_code" id="begin_code" placeholder="起始码" value="1" style="width:80px"/>
+            <input type="text" name="count" id="count" placeholder="数量" value="100" style="width:80px"/>
+            <input type='checkbox' id='isFormal' name="formal" value="0"/>正式码
+            <button type="submit">生成并导出电池码</button>
+        </div>
+    </form>
+</div>
+<script type="text/javascript">
+    $(function(){
+        $("#isFormal").change(function() {
+            $(this).val($(this).prop('checked')?1:0);
+            if($(this).prop('checked')){
+                $("#begin_code").val(10001);
+            }else{
+                $("#begin_code").val(1);
+            }
+        });
+    })
+    function checkForm(){
+        var city_code=$("#city_code").val();
+        if(!city_code){
+            alert("城市区号不能为空");
+            return false;
+        }
+        if(isNaN(city_code)){
+            alert("城市区号为数字");
+            return false;
+        }
+        var begin_code=$("#begin_code").val();
+        if(!begin_code){
+            alert("起始码不能为空");
+            return false;
+        }
+        if(isNaN(begin_code)){
+            alert("起始码为数字");
+            return false;
+        }
+        var count=$("#count").val();
+        if(!count){
+            alert("数量不能为空");
+            return false;
+        }
+        if(isNaN(count)){
+            alert("数量为数字");
+            return false;
+        }
+        return true;
+    }
+</script>
+</body>
+
+</html>

@@ -1,0 +1,1129 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+    <title>小蜜数据统计</title>
+    <meta name="description" content="">
+    <meta name="keywords" content="">
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"  />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="format-detection" content="email=no" />
+    <link rel="stylesheet" href="http://css.baojia.com/s4/c/css/reset.css">
+    <link rel="stylesheet" type="text/css" href="http://css.baojia.com/s4/e/css/m-170713/html5tooltips.css">
+    <link rel="stylesheet" type="text/css" href="http://css.baojia.com/s4/e/css/m-170713/style.css">
+	<link href="__CSS__/datetimepicker.css" rel="stylesheet" type="text/css">
+	<link href="__CSS__/datetimepicker_blue.css" rel="stylesheet" type="text/css">
+	<link href="__CSS__/dropdown.css" rel="stylesheet" type="text/css">
+	<link rel="stylesheet" href="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/css/bootstrap.min.css">
+	<script type="text/javascript" src="__JS__/jquery-1.10.2.min.js"></script>
+	<script src="http://cdn.static.runoob.com/libs/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="__JS__/layer/layer.js"></script>
+	<script type="text/javascript" src="__JS__/bootstrap-datetimepicker.min.js"></script>
+	<script type="text/javascript" src="__JS__/bootstrap-datetimepicker.zh-CN.js" charset="UTF-8"></script>
+	<!-- <link rel="stylesheet" type="text/css" href="../../css/m-170713/style.css"> -->
+    <!--[if IE]>
+		<script src="http://cdn.bootcss.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+	<![endif]-->
+	<style type="text/css">
+		.search{width:1198px;margin:0 auto;padding:30px 0;background-color:#bef3e8;}
+		.form-group .label-title{width:100px;font-weight:normal;}
+		.btn-primary{background-color:#00af8b;border-color:#00af8b;}
+		.btn-primary:focus,.btn-primary:hover,.btn-primary:active{background-color:#00af8b;border-color:#00af8b;}
+		.btn,.form-control{border:none;}
+	</style>
+</head>
+<body>
+
+	<div class="wrapper" style="margin-top: 0px;">
+		<input type="hidden" id="current_date" value="{$today|date='Y-m-d',###}"/>
+		<form class="form-inline" style="background-color:#bef3e8;">
+			<div class="search">
+				<div class="form-group">
+					<label for="startDate" class="label-title">开始日期</label>
+					<input type="text"  id="startDate" name="startDate" value="{$today|date='Y-m-d',###}" placeholder="选择开始日期"  class='time form-control'>
+				</div>
+				<div class="form-group">
+					<label for="endDate" class="label-title" style="margin-left:30px;">截止日期</label>
+					<input type="text"  id="endDate" name="endDate" value="{$end|date='Y-m-d',###}" placeholder="选择截止日期" class='time form-control'>
+				</div>
+				<button type="button" class="btn btn-default" id="btnToday" style="margin-left:20px;">今日</button>
+				<button type="button" class="btn btn-default" id="btnYesterday">昨日</button>
+				<button type="button" class="btn btn-default" id="btnWeek">本周</button>
+				<button type="button" class="btn btn-default" id="btnMonth">本月</button>
+				<br/><br/>
+				<div class="form-group">
+					<label class="label-title">城市</label>
+					<label class="checkbox-inline">
+						<input type="checkbox" id="cityAll" value="0" checked="checked">全部
+					</label>
+					<foreach name="cityArray" item="vo" >
+						<label class="checkbox-inline">
+							<input type="checkbox" name="cityList" value="{$vo.id}">{$vo.name}
+						</label>
+					</foreach>
+				</div>
+				<br/><br/>
+				<div class="form-group">
+					<label class="label-title">运营模式</label>
+					<label class="checkbox-inline">
+						<input type="checkbox" name="patternList" id="patternAll" value="0" checked="checked">全部
+					</label>
+					<label class="checkbox-inline">
+						<input type="checkbox" name="patternList" value="1">原点还
+					</label>
+					<label class="checkbox-inline">
+						<input type="checkbox" name="patternList" value="2">网点还
+					</label>
+					<label class="checkbox-inline">
+						<input type="checkbox" name="patternList" value="4">自由还
+					</label>
+					<label class="checkbox-inline">
+						<input type="checkbox" name="patternList" value="32">区域还
+					</label>
+				</div>
+				<div class="form-group">
+					<label class="label-title"></label>
+					<button type="button" class="btn btn-primary" id="btnSearch" style="width:100px;background-color:#00af8">查询 </button>
+				</div>
+			</div>
+		</form>
+		<div class="content cl" style="margin-top: 15px;">
+			<div class="cont_box cont_left">
+				<div class="title">运营数据</div>
+				<div class="count">
+					<div class="txt txt1 cl">
+						<div class="first">
+							<p>预约次数 <a href="javascript:;" class="qMark qMark1">?</a>：<span id="order_num"></span></p>
+							<p>预约人数 <a href="javascript:;" class="qMark qMark2">?</a>：<span id="order_user_num"></span>人</p>
+						</div>
+						<div class="second">
+							<p>取消预约 <a href="javascript:;" class="qMark qMark3">?</a>：<span id="cancel_num"></span>次</p>
+							<p>预约下单 <a href="javascript:;" class="qMark qMark53">?</a>：<span id="reserve_num"></span>次</p>
+							<p>扫码下单 <a href="javascript:;" class="qMark qMark54">?</a>：<span id="scan_code_num"></span>次</p>
+							<p>输入车牌号下单 <a href="javascript:;" class="qMark qMark55">?</a>：<span id="plate_on_num"></span>次</p>
+						</div>
+						<span class="circle"></span>
+					</div>
+					<div class="txt txt2 cl">
+						<div class="first">
+							<p>使用次数 <a href="javascript:;" class="qMark qMark4">?</a>：<span id="use_num" >次</span></p>
+							<p>使用人数 <a href="javascript:;" class="qMark qMark5">?</a>：<span id="use_user_num" >人</span></p>
+						</div>
+						<div class="second">
+							<p>临时锁车次数 <a href="javascript:;" class="qMark qMark6">?</a>：<span id="lock_count"></span></p>
+							<p>临时锁车人数 <a href="javascript:;" class="qMark qMark7">?</a>：<span id="lock_user_count"></span></p>
+							<p>平均里程 <a href="javascript:;" class="qMark qMark8">?</a>：<span id="average_mileage"></span>km</p>
+							<p>平均时长 <a href="javascript:;" class="qMark qMark9">?</a>：<span id="average_time"></span></p>
+						</div>
+						<span class="circle"></span>
+					</div>
+					<div class="txt txt3 cl">
+						<div class="first">
+							<p>还车次数 <a href="javascript:;" class="qMark qMark10">?</a>：<span id="return_car_num">次</span></p>
+							<p>还车人数 <a href="javascript:;" class="qMark qMark11">?</a>：<span id="return_car_user_num">人</span></p>
+						</div>
+						<div class="second">
+							<p>栏内还车 <a href="javascript:;" class="qMark qMark12">?</a>：<span id="column_num"></span></p>
+							<p style="visibility: hidden;">栏外还车 <a href="javascript:;" class="qMark qMark13">?</a>：200</p>
+							<p style="visibility: hidden;">平均里程 <a href="javascript:;" class="qMark qMark14">?</a>：200</p>
+							<p>栏外还车 <a href="javascript:;" class="qMark qMark15">?</a>：<span id="column_outside_num"></span></p>
+						</div>
+						<!--<div class="third">-->
+							<!--<p>网点内还车 <a href="javascript:;" class="qMark qMark16">?</a>：1000</p>-->
+							<!--<p>网点外还车 <a href="javascript:;" class="qMark qMark17">?</a>：1000</p>-->
+						<!--</div>-->
+						<span class="circle"></span>
+					</div>
+					<div class="txt txt4 cl">
+						<div class="first">
+							<p>支付次数 <a href="javascript:;" class="qMark qMark18">?</a>：<span id="pay_num"></span>次</p>
+							<p>支付人数 <a href="javascript:;" class="qMark qMark19">?</a>：<span id="pay_user_num"></span>人</p>
+						</div>
+						<div class="second">
+							<p>微信支付 <a href="javascript:;" class="qMark qMark20">?</a>：<span id="wx_num"></span>次 <span id="wx_amount"></span>元</p>
+							<p>宝币支付 <a href="javascript:;" class="qMark qMark21">?</a>：<span id="bb_num"></span>次 <span id="bb_amount"></span>元</p>
+						</div>
+						<span class="circle"></span>
+					</div>
+				</div>				
+			</div>
+			<div class="cont_box cont_right">
+				<div class="title">用户</div>
+				<div class="count">
+					<div class="txt txt1 cl">
+						<div class="first">
+							<p>注册 <a href="javascript:;" class="qMark qMark22">?</a>：<span id="register_count"></span></p>
+						</div>
+						<span class="circle"></span>
+					</div>
+					<div class="txt txt2 cl">
+						<div class="first">
+							<p>实名认证 <a href="javascript:;" class="qMark qMark23">?</a>：<span id="validate_count"></span></p>
+						</div>
+						<span class="circle"></span>
+					</div>
+					<div class="txt txt3 cl">
+						<div class="first">
+							<p>交纳押金 <a href="javascript:;" class="qMark qMark24">?</a>：<span id="pay_deposit_count"></span></p>
+						</div>
+						<span class="circle"></span>
+					</div>
+					<div class="txt txt4 cl">
+						<div class="first">
+							<p>押金退款 <a href="javascript:;" class="qMark qMark25">?</a>：<span id="deposit_return_count"></span></p>
+						</div>
+						<span class="circle"></span>
+					</div>
+					<div class="cont_right1">
+						<div class="txt txt1 cl">
+							<div class="first">
+								<p>周活跃 <a href="javascript:;" class="qMark qMark26">?</a>：<span id="active_week" >0</span></p>
+							</div>
+							<span class="circle"></span>
+						</div>
+						<div class="txt txt2 cl">
+							<div class="first">
+								<p>月活跃 <a href="javascript:;" class="qMark qMark28">?</a>：<span id="active_month" >0</span></p>
+							</div>
+							<span class="circle"></span>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="content">
+			<div class="title">
+				其它
+			</div>
+			<ul class="list cl">
+				<li>日车均订单数(运营)<a href="javascript:;" class="qMark qMark29">?</a>：<span id="average_daily_order">0</span>单</li>
+				<li>日车均订单数(出租)<a href="javascript:;" class="qMark qMark30">?</a>：<span id="average_chuzu_daily_order">0</span>单</li>
+				<li>日车均贡献值(出租)<a href="javascript:;" class="qMark qMark31">?</a>：<span id="sellCountValue"></span>元</li>
+				<li>日车均贡献值(运营)<a href="javascript:;" class="qMark qMark32">?</a>：<span id="operate_value_daily"></span>元</li>
+				<li>出租率(运营)<a href="javascript:;" class="qMark qMark33">?</a>：<span id="rentalRate"></span></li>
+				<li>0元车使用次数<a href="javascript:;" class="qMark qMark80">?</a>：<span id="one_car_num"></span></li>
+				<li>0元车实际使用次数<a href="javascript:;" class="qMark qMark81">?</a>：<span id="real_one_car_num"></span></li>
+			</ul>
+		</div>
+		<div class="content cl content1">
+			<div class="cont_box cont_left car_status" style="display:none;">
+				<div class="title">车辆情况</div>
+				<div class="count">
+					<div class="txt txt1 cl">
+						<div class="first">
+							<p>运营 <a href="javascript:;" class="qMark qMark34">?</a>：<span id="inOperation"></span></p>
+						</div>
+						<div class="second">
+							<p>出租中 <a href="javascript:;" class="qMark qMark35">?</a>：<span id="sellCount"></span></p>
+							<p style="visibility: hidden;">待租 <a href="javascript:;" class="qMark qMark36">?</a>：889</p>
+							<p>待租 <a href="javascript:;" class="qMark qMark36">?</a>：<span id="forRent"></span></p>
+						</div>
+					</div>
+					<div class="txt txt2 cl">
+						<div class="first">
+							<p>未运营 <a href="javascript:;" class="qMark qMark37">?</a>：<span id="notOperation"></span></p>
+						</div>
+						<div class="second">
+							<p>下架 <a href="javascript:;" class="qMark qMark38">?</a>：<span id="beOffline"></span></p>
+							<p style="margin-top: 120px;">停租 <a href="javascript:;" class="qMark qMark39">?</a>：<span id="allStop"></span></p>
+						</div>
+						<div class="third">
+							<p>越界 <a href="javascript:;" class="qMark qMark40">?</a>：<span id="overBoundaryDown"></span></p>
+							<p>馈电 <a href="javascript:;" class="qMark qMark41">?</a>：<span id="feedBattery"></span></p>
+							<p>离线 <a href="javascript:;" class="qMark qMark42">?</a>：<span id="offlineDown"></span></p>
+							<p>回收下架 <a href="javascript:;" class="qMark qMark43">?</a>：<span id="returnCount"></span></p>
+							<div class="four">
+								<p>人工停租 <a href="javascript:;" class="qMark qMark44">?</a>：<span id="stopHire"></span></p>
+								<p>维修 <a href="javascript:;" class="qMark qMark45">?</a>：<span id="maintain"></span></p>
+							</div>
+						</div>
+					</div>
+				</div>				
+			</div>
+			<div class="cont_box cont_right car_status" style="display:none;">
+				<div class="title">警告</div>
+				<ul class="cl">
+					<li>断电 <a href="javascript:;" class="qMark qMark46">?</a>：<span id="offBattery"></span></li>
+					<li>低电量 <a href="javascript:;" class="qMark qMark47">?</a>：<span id="lowBattery"></span></li>
+					<li>无电 <a href="javascript:;" class="qMark qMark48">?</a>：<span id="noBattery"></span></li>
+					<li>两日无单 <a href="javascript:;" class="qMark qMark49">?</a>：<span id="noOrder"></span></li>
+					<li>有单无程 <a href="javascript:;" class="qMark qMark50">?</a>：<span id="trouble"></span></li>
+					<li>最新离线 <a href="javascript:;" class="qMark qMark51">?</a>：<span id="latestOffline"></span></li>
+					<li>最危离线 <a href="javascript:;" class="qMark qMark52">?</a>：<span id="dayOffline"></span></li>
+				</ul>
+			</div>
+		</div>
+	</div>		
+</body>
+<script type="text/javascript" src="http://css.baojia.com/s4/e/js/m-170713/html5tooltips.js"></script>
+<script>
+    var carInfo =[],income=0,city =0,pattern =0,selectedCity="",selectedPattern="",dd=1,rent_car_count=0;
+    $(function(){
+        $('.time').datetimepicker({
+            format: 'yyyy-mm-dd',
+            language:"zh-CN",
+            startView:'month',
+            minView:'month',
+            todayBtn:true,
+            minuteStep:30,
+            autoclose:true
+        });
+        $("#btnSearch").on("click",function(){
+            loadData();
+        });
+        $("#startDate,#endDate").on("click",function () {
+            $(this).parent().removeClass("has-error");
+        });
+        $("#cityAll").click(function(){
+            if($("#cityAll").is(":checked")){
+                city=0;
+                $("[name=cityList]:checkbox").prop("checked", true);
+            }else{
+                city="";
+                $("[name=cityList]:checkbox").removeAttr("checked");
+            }
+        });
+        $("[name=cityList]:checkbox").click(function(){
+            var flag=true;
+            selectedCity="";
+            $("[name=cityList]:checkbox").each(function(){
+                if(!this.checked&&$(this).attr("id")!="cityAll"){
+                    flag=false;
+                }
+            });
+            if(flag) {
+                $("#cityAll").prop("checked", true);
+            }else{
+                $("#cityAll").removeAttr("checked");
+            }
+            $("[name=cityList]:checkbox:checked").each(function(){
+                selectedCity+=$(this).val()+",";
+            });
+            if(selectedCity.length>0){
+                selectedCity=selectedCity.substr(0,selectedCity.length-1);
+            }
+            if(flag){
+                city=0
+            }else {
+                city = selectedCity;
+            }
+        });
+        $("#patternAll").click(function(){
+            if($("#patternAll").is(":checked")){
+                pattern=0;
+                $("[name=patternList]:checkbox").prop("checked", true);
+            }else{
+                pattern="";
+                $("[name=patternList]:checkbox").removeAttr("checked");
+            }
+        });
+        $("[name=patternList]:checkbox").click(function(){
+            var flag=true;
+            selectedPattern="";
+            $("[name=patternList]:checkbox").each(function(){
+                if(!this.checked&&$(this).attr("id")!="patternAll"){
+                    flag=false;
+                }
+            });
+            if(flag) {
+                $("#patternAll").prop("checked", true);
+            }else{
+                $("#patternAll").removeAttr("checked");
+            }
+            $("[name=patternList]:checkbox:checked").each(function(){
+                selectedPattern+=$(this).val()+",";
+            });
+            if(selectedPattern.length>0){
+                selectedPattern=selectedPattern.substr(0,selectedPattern.length-1);
+            }
+            if(flag){
+                pattern=0
+            }else {
+                pattern = selectedPattern;
+            }
+        });
+        loadData();
+        $("#btnToday,#btnYesterday,#btnWeek,#btnMonth").click(function(){
+            if($(this).attr("id")=="btnToday"){
+                $("#startDate").val($("#current_date").val());
+                $("#endDate").val($("#current_date").val());
+            }
+            if($(this).attr("id")=="btnYesterday"){
+                $("#startDate").val(GetDateString(-1));
+                $("#endDate").val(GetDateString(-1));
+            }
+            if($(this).attr("id")=="btnWeek"){
+                $("#startDate").val(GetWeekFirstDay());
+                $("#endDate").val(GetWeekLastDay());
+            }
+            if($(this).attr("id")=="btnMonth"){
+                $("#startDate").val(GetMonthFirstDay());
+                $("#endDate").val(GetMonthLastDay());
+            }
+            loadData();
+        });
+    });
+    function loadData() {
+        $(".car_status").hide();
+        var currentDate = $("#current_date").val();
+        var startDate = $("#startDate").val();
+        var endDate = $("#endDate").val();
+        if (!startDate) {
+            $("#startDate").parent().addClass("has-error");
+            return false;
+        }
+        if (!endDate) {
+            $("#endDate").parent().addClass("has-error");
+            return false;
+        }
+        if(!city){
+            city=0;
+            if(city.length==0) {
+                layer.msg('请选择城市');
+                return false;
+            }
+        }
+        if(!pattern){
+            pattern=0;
+            if(pattern.length==0) {
+                layer.msg('请选择运营模式');
+                return false;
+            }
+        }
+        layer.load();
+        var postData={
+            startDate: startDate,
+            endDate: endDate,
+            city: city,
+            pattern: pattern
+        };
+        dd=GetDateRegion(startDate,endDate);
+        $("#active_week,#active_month").html(0);
+        $("#average_daily_order,#operate_value_daily").empty();
+        $.post("{:U('/Statistics/Index/loadData')}",postData, function (data) {
+            layer.closeAll('loading');
+            if (data.status == 1) {
+                $("#register_count").html(data.user.register_count);
+                $("#validate_count").html(data.user.validate_count);
+                $("#pay_deposit_count").html(data.user.pay_deposit_count);
+                $("#deposit_return_count").html(data.user.deposit_return_count);
+                // $("#lock_count").html(data.user.lock_count);
+                $("#lock_count").html(data.user.lock_count-data.user.lock_user_count);
+                $("#lock_user_count").html(data.user.lock_user_count);
+                $("#active_week").html(data.user.week_active);
+                $("#active_month").html(data.user.month_active);
+                var orderCount=data.order.order_num;
+                var useCount=data.order.use_num;
+                $("#order_num,.order_num").html(data.order.order_num+"次");
+                $("#order_user_num").html(data.order.order_user_num);
+                $("#use_num").html(data.order.use_num+"次");
+                $("#return_car_num").html(data.order.return_car_num+"次");
+                $("#return_car_user_num").html(data.order.return_car_user_num+"人");
+                $("#use_user_num").html(data.order.use_user_num+"人");
+                $("#return_car_num").html(data.order.return_car_num);
+				$("#one_car_num").html(data.order.one_car_num+"次");
+				$("#real_one_car_num").html(data.order.real_one_car_num+"次");
+                $("#pay_num").html(data.order.pay_num);
+                $("#pay_user_num").html(data.order.pay_user_num);
+                $("#cancel_num").html(data.order.cancel_num);
+                $("#reserve_num").html(data.order.reserve_num);
+                $("#scan_code_num").html(data.order.scan_code_num);
+                $("#plate_on_num").html(data.order.plate_on_num);
+                $("#column_num").html(data.order_pay.column_num);
+                $("#column_outside_num").html(data.order_pay.column_outside_num);
+                $("#point_num").html(data.order_pay.point_num);
+                $("#point_outside_num").html(data.order_pay.point_outside_num);
+                $("#wx_num").html(data.order_pay.wx_num);
+                $("#wx_amount").html(data.order_pay.wx_amount);
+                $("#bb_num").html(data.order_pay.bb_num);
+                $("#bb_amount").html(data.order_pay.bb_amount);
+                income = (parseFloat(data.order_pay.wx_amount) + parseFloat(data.order_pay.bb_amount)).toFixed(2);
+                $("#all_mile").html(data.travel.all_mile);
+                $("#all_time").html(data.travel.all_time);
+                $("#average_mileage").html(data.travel.average_mileage);
+                $("#average_time").html(data.travel.average_time);
+                $("#sellCountValue").empty();
+                $("#average_chuzu_daily_order").empty();
+                var cars = new Array();
+                $(".btn").attr("disabled","disabled");
+                $("input[type=checkbox]").attr("disabled","disabled");
+                if((currentDate == startDate && currentDate == GetMonthFirstDay())||(currentDate == startDate && currentDate == GetWeekFirstDay())){
+                    postData.endDate=startDate;
+                    endDate=startDate;
+                    dd=1;
+                }
+                else{
+                    var strDateRegion=GetDateRegion(currentDate,endDate);
+                    if(strDateRegion>1) {
+                        dd=GetDateRegion(startDate,currentDate)-1;
+                    }
+                }
+                console.log("最终实际天数："+dd);
+                if (currentDate == startDate && currentDate == endDate) {
+                    $(".user_title").attr("colspan",4);
+                    $(".active_users").show();
+					/*$.post("{:U('/Statistics/Index/loadActiveUser')}", postData, function (data) {
+					 if (data.status == 1) {
+					 if (data.week_active_count && data.week_active_count.length > 0) {
+					 $("#active_week").html(data.week_active_count);
+					 }
+					 if (data.month_active_count && data.month_active_count.length > 0) {
+					 $("#active_month").html(data.month_active_count);
+					 }
+					 }
+					 });*/
+                    $.post("{:U('/Statistics/Index/loadCarData')}", postData, function (data) {
+                        $(".car_status span").empty();
+                        $(".car_status").show();
+                        if (data.status == 1) {
+                            if (data.car_status && data.car_status.length > 0) {
+                                carInfo.inOperation = 0;      //运营中 出租中和待租的车辆数
+                                carInfo.forRent = 0;          //待租
+                                carInfo.sellCount = 0;        //出租中
+                                carInfo.notOperation = 0;     //未运营的车辆 下架和停租的车辆数
+                                carInfo.overBoundaryDown = 0; //越界 在围栏外的车的数量
+                                carInfo.offlineDown = 0;      //离线 离线的车的数量
+                                carInfo.allStop =0;           //所有停租 维修+停租
+                                carInfo.stopHire = 0;         //人工停租
+                                carInfo.maintain =0;           //维修
+                                carInfo.beOffline = 0;        //下架
+                                carInfo.badCount = 0;
+                                carInfo.feedBattery = 0;      //馈电
+                                carInfo.operation = 0;
+                                carInfo.returnCount = 0;      //收回下架
+                                carInfo.allCount = 0;
+                                carInfo.allOnlineCount = 0;   //上线车辆 除停租以外的运营车辆
+                                carInfo.fullBattery = 0;      //满电
+                                cars = new Array();
+                                $.each(data.car_status, function (i, item) {
+                                    cars.push(item.car_item_id);
+                                    carInfo.operation += 1;
+                                    if (item.status==2&&item.sell_status==-10&&item.car_info_id!=30150) { //收回下架
+                                        carInfo.returnCount += 1;
+                                    }
+
+                                    if (item.status!= 2 && item.sell_status != 0&&item.car_info_id!=30150) {
+                                        carInfo.badCount += 1;
+                                    }
+                                    if (item.status == 2 && item.sell_status == 0&&item.car_info_id!=30150) { //人工停租
+                                        carInfo.stopHire += 1;
+                                    }
+
+                                    if (item.status == 2 && item.sell_status != 1 && item.sell_status != 0&&item.car_info_id!=30150) { //下架
+                                        carInfo.beOffline += 1;
+                                    }
+                                    if (item.is_sell&&item.status==2&&item.sell_status==1&&item.sell_status!=0&&item.car_info_id!=30150) { //正在出租中
+                                        carInfo.sellCount += 1;
+                                    }
+                                    if (item.is_sell!=1&&item.status == 2 && item.sell_status == 1 && item.sell_status != 0&&item.car_info_id!=30150) { //待租
+                                        carInfo.forRent += 1;
+                                    }
+                                    if (item.status == 2 && item.sell_status != 0&&item.car_info_id!=30150) { //上线车辆 除停租以外的运营车辆
+                                        carInfo.allOnlineCount += 1;
+                                    }
+                                    if (item.status == 2 && item.sell_status == -7 && item.sell_status != 0&&item.car_info_id!=30150) { //越界下架
+                                        carInfo.overBoundaryDown += 1;
+                                    }
+                                    if (item.status == 2 && item.sell_status == -100 && item.sell_status != 0&&item.car_info_id!=30150) { //离线下架
+
+                                        carInfo.offlineDown += 1;
+                                    }
+                                    if (item.status == 2 &&item.sell_status == -1&& item.sell_status != 0&&item.car_info_id!=30150) { //馈电
+                                        carInfo.feedBattery += 1;
+                                    }
+                                    carInfo.allCount += 1;
+                                });
+                                carInfo.inOperation= carInfo.forRent+carInfo.sellCount;     //运营中 出租中和待租的车辆数
+                                carInfo.notOperation=carInfo.stopHire+ carInfo.beOffline;   //未运营的车辆 下架和停租的车辆数
+                                //orderCount useCount
+                                if(carInfo.inOperation>0&&useCount>0) {
+                                    $("#average_daily_order").html((useCount / carInfo.inOperation).toFixed(2));
+                                }
+                                $("#forRent").html(carInfo.forRent);
+                                $("#sellCount").html(carInfo.sellCount);
+                                $("#inOperation").html(carInfo.inOperation);
+                                $("#overBoundaryDown").html(carInfo.overBoundaryDown);
+                                $("#offlineDown").html(carInfo.offlineDown);
+                                $("#stopHire").html(carInfo.stopHire);
+                                $("#feedBattery").html(carInfo.feedBattery);
+                                $("#returnCount").html(carInfo.returnCount);
+                                $("#beOffline").html(carInfo.beOffline);
+
+                                $.post("{:U('/Statistics/Index/loadRentCarCount')}",postData, function (data){
+                                    if (data.status == 1){
+                                        rent_car_count=0;
+                                        if (data.rent_car_count && data.rent_car_count.length > 0) {
+                                            rent_car_count = data.rent_car_count;
+                                        }
+                                        if(income >0&&rent_car_count>0) {
+                                            $("#sellCountValue").html(((income/dd) /(rent_car_count/dd)).toFixed(2));//.attr("title",income+"/"+rent_car_count+"/"+dd);
+											$("#average_chuzu_daily_order").html((useCount / rent_car_count).toFixed(2));
+                                        }else{
+										    $("#sellCountValue").html("0");
+                                            $("#average_chuzu_daily_order").html("0");
+                                        }
+                                        if(carInfo.inOperation>0&&rent_car_count>0) {
+                                            $("#rentalRate").html(((rent_car_count/dd)/(carInfo.inOperation/dd)).toFixed(2));
+                                        }else{
+                                            $("#rentalRate").html("0");
+                                        }
+                                    }
+                                });
+
+                                if(income >0){
+                                    if(carInfo.inOperation>0) {
+                                        $("#operate_value_daily").html(( income / carInfo.inOperation).toFixed(2));
+                                    }
+                                }
+                                $.post("{:U('/Statistics/Index/loadCarOrderData')}",postData, function (data) {
+                                    $(".car_status").show();
+                                    if (data.status == 1) {
+                                        if (data.car_order && data.car_order.length > 0) {
+                                            carInfo.noOrder = 0;          //两日无单
+                                            carInfo.trouble = 0;          //有单无程
+                                            $.each(data.car_order, function (i, item) {
+                                                if(item.status==2&&item.ordercount>0&&item.mile==0&&item.sell_status==1&&item.car_info_id!=30150){ //有单无程
+                                                    carInfo.trouble+=1;
+                                                }
+                                                if(item.sell_status==1&&item.status==2&&item.ordercount==0&&item.car_info_id!=30150&&item.sell_status!=0&&item.is_sell!=1){
+                                                    carInfo.noOrder+=1;//两日无单
+                                                }
+                                            });
+                                            $("#trouble").html(carInfo.trouble);
+                                            $("#noOrder").html(carInfo.noOrder);
+                                        }else{
+                                            $("#trouble").html("0");
+                                            $("#noOrder").html("0");
+                                        }
+                                    }
+                                });
+                                postData.cars=cars.join(',');
+                                if(postData.cars.length>0) {
+                                    $.post("{:U('/Statistics/Index/loadCarOnlineData')}", postData, function (data) {
+                                        $(".car_status").show();
+                                        $(".btn").removeAttr("disabled");
+                                        $("input[type=checkbox]").removeAttr("disabled");
+                                        if (data.status == 1) {
+                                            if (data.car_online && data.car_online.length > 0) {
+                                                carInfo.lowBattery = 0;       //低电 电量>20%
+                                                carInfo.offBattery = 0;       //断电
+                                                carInfo.noBattery = 0;        //无电
+                                                carInfo.onLine = 0;           //在线
+                                                carInfo.latestOffline = 0;    //最近离线
+                                                carInfo.latestOffline10 = 0;  //最近10分钟离线
+                                                carInfo.latestOffline12 = 0;  //最近15分钟离线
+                                                carInfo.latestOffline15 = 0;  //最近10分钟离线
+                                                carInfo.dayOffline = 0;       //高危离线
+                                                $.each(data.car_online, function (i, item) {
+                                                    if (isNaN(item.residual_battery) || item.residual_battery > -1 && item.residual_battery < 20 && item.sell_status != -10 && item.sell_status != 0 && item.car_info_id != 30150) { //电量小于20%
+                                                        carInfo.lowBattery += 1;
+                                                    }
+                                                    //if(battery<=0&&data[i].car_info_id!=30150&&data[i].sell_status!=-10&&data[i].sell_status!=0){
+                                                    //if( isNaN(battery) || battery<=0&&data[i].car_info_id!=30150&&data[i].sell_status!=-10&&data[i].sell_status!=0){
+                                                    if (item.residual_battery <= 0 && item.sell_status != -10&&item.sell_status != 0&&item.car_info_id != 30150) { //无电量
+                                                        carInfo.offBattery += 1;  //断电
+                                                        carInfo.noBattery += 1;   //无电
+                                                    }
+                                                    if (item.residual_battery == 100 && item.sell_status != -10 && item.sell_status != 0 && item.car_info_id != 30150) {
+                                                        carInfo.fullBattery += 1;   //满电
+                                                    }
+                                                    if (item.lastonline != null && item.lastonline.length > 0) {
+                                                        var now = Math.round(new Date().getTime() / 1000);     //超过20分钟无信号
+                                                        var onlineTime = parseInt(item.lastonline);
+                                                        if ((now - onlineTime) < (20 * 60) && item.sell_status != -10 && item.sell_status != 0 && item.car_info_id != 30150) {
+                                                            carInfo.onLine += 1;
+                                                        }
+                                                        if ((now - onlineTime) > (5 * 60) && item.sell_status != -10 && item.sell_status != 0 && item.car_info_id != 30150) { //最近离线
+                                                            carInfo.latestOffline5 += 1;
+                                                        }
+                                                        if ((now - onlineTime) > (10 * 60) && item.sell_status != -10 && item.sell_status != 0 && item.car_info_id != 30150) { //最近离线
+                                                            carInfo.latestOffline10 += 1;
+                                                        }
+                                                        if ((now - onlineTime) > (12 * 60) && item.sell_status != -10 && item.sell_status != 0 && item.car_info_id != 30150) { //最近离线
+                                                            carInfo.latestOffline12 += 1;
+                                                        }
+                                                        if ((now - onlineTime) > (15 * 60) && item.sell_status != -10 && item.sell_status != 0 && item.car_info_id != 30150) { //最近离线
+                                                            carInfo.latestOffline15 += 1;
+                                                        }
+                                                        if ((now - onlineTime) > (20 * 60) && item.sell_status != -10 && item.sell_status != 0 && item.car_info_id != 30150) { //最近离线
+                                                            carInfo.latestOffline += 1;
+                                                        }
+                                                        if ((now - onlineTime) > (24 * 60 * 60) && item.sell_status != -10 && item.sell_status != 0 && item.car_info_id != 30150) { //高危离线
+                                                            carInfo.dayOffline += 1;
+                                                        }
+                                                    }
+                                                });
+                                                $("#lowBattery").html(carInfo.lowBattery);
+                                                $("#offBattery").html(carInfo.offBattery);
+                                                $("#noBattery").html(carInfo.noBattery);
+                                                $("#latestOffline").html(carInfo.latestOffline);
+                                                $("#dayOffline").html(carInfo.dayOffline);
+                                            }
+                                        }
+                                    });
+                                }
+                                carInfo.maintain =data.maintain;         //维修
+                                carInfo.allStop =parseInt(carInfo.stopHire)+parseInt(carInfo.maintain); //所有停租 维修+停租
+                                carInfo.notOperation =parseInt(carInfo.notOperation)+parseInt(carInfo.maintain);
+                                $("#notOperation").html(carInfo.notOperation);
+                                $("#allStop").html(carInfo.allStop);
+                                $("#maintain").html(carInfo.maintain);
+                            }else{
+                                $("#operate_value_daily,#rentalRate").empty();
+                                $(".car_status span").empty();
+                                $(".btn").removeAttr("disabled");
+                                $("input[type=checkbox]").removeAttr("disabled");
+                            }
+                        } else {
+                            $("#operate_value_daily,#rentalRate").empty();
+                            $(".btn").removeAttr("disabled");
+                            $("input[type=checkbox]").removeAttr("disabled");
+                            layer.msg(data.info);
+                        }
+                    });
+                }else{
+                    $(".user_title").attr("colspan",3);
+                    $(".active_users").hide();
+                    $("#operate_value_daily,#average_daily_order,#rentalRate").empty().removeAttr("title");
+                    $(".btn").removeAttr("disabled");
+                    $("input[type=checkbox]").removeAttr("disabled");
+                    var effectiveDate = new Date("2017-07-03").getTime();
+                    var searchStartDate = new Date(startDate).getTime();
+                    //大于或等于有效日期
+                    if (searchStartDate >=effectiveDate) {
+                        $.post("{:U('/Statistics/Index/loadOperationCarData')}",postData, function (data) {
+                            if (data.status == 1) {
+                                carInfo.inOperation = 0;
+
+                                if (data.day_operation_car && data.day_operation_car.length > 0) {
+                                    carInfo.inOperation = data.day_operation_car;
+                                }
+                                if (income > 0 && carInfo.inOperation > 0) {
+                                    $("#operate_value_daily").html((( income / dd) / (carInfo.inOperation / dd)).toFixed(2));
+                                }
+                                //orderCount userCount
+                                if (carInfo.inOperation > 0 && useCount > 0) {
+                                    $("#average_daily_order").html((useCount / carInfo.inOperation).toFixed(2));
+                                }
+                                $.post("{:U('/Statistics/Index/loadRentCarCount')}", postData, function (data) {
+                                    if (data.status == 1) {
+                                        rent_car_count = 0;
+                                        if (data.rent_car_count && data.rent_car_count.length > 0) {
+                                            rent_car_count = data.rent_car_count;
+                                        }
+                                        if (carInfo.inOperation> 0 && rent_car_count>0) {
+                                            $("#rentalRate").html(((rent_car_count / dd) / (carInfo.inOperation / dd)).toFixed(2));
+                                        } else {
+                                            $("#rentalRate").html("0");
+                                        }
+                                        if(income >0&&rent_car_count>0) {
+                                            $("#sellCountValue").html(((income/dd) /(rent_car_count/dd)).toFixed(2));//.attr("title",income+"/"+rent_car_count+"/"+dd);
+											$("#average_chuzu_daily_order").html((useCount / rent_car_count).toFixed(2));
+                                        }else{
+										    $("#sellCountValue").html("0");
+                                            $("#average_chuzu_daily_order").html("0");
+                                        }
+                                    }
+                                });
+                            }
+                        });
+                    } else {
+                        $("#operate_value_daily,#average_daily_order,#rentalRate").html("<font style='color:red;'>?</font>").attr("title","由于之前的日运营车辆数据未做统计并保存，请选择2017年7月3日后的日期");
+                        $.post("{:U('/Statistics/Index/loadRentCarCount')}", postData, function (data) {
+                            if (data.status == 1) {
+                                rent_car_count = 0;
+                                if (data.rent_car_count && data.rent_car_count.length > 0) {
+                                    rent_car_count = data.rent_car_count;
+                                }
+                                if(income >0&&rent_car_count>0) {
+                                    $("#sellCountValue").html(((income/dd) /(rent_car_count/dd)).toFixed(2));//.attr("title",income+"/"+rent_car_count+"/"+dd);
+									$("#average_chuzu_daily_order").html((useCount / rent_car_count).toFixed(2));
+                                }else{
+                                    $("#sellCountValue").html("0");
+									$("#average_chuzu_daily_order").html("0");
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+            else {
+                layer.msg(data.info);
+            }
+        });
+    }
+    function GetDateRegion(sDate1,sDate2)
+    {
+        var aDate, oDate1, oDate2, iDays;
+        aDate = sDate1.split("-");
+        oDate1 = new Date(aDate[1] + '/' + aDate[2] + '/' + aDate[0]);   //转换为12/13/2008格式
+        aDate = sDate2.split("-");
+        oDate2 = new Date(aDate[1] + '/' + aDate[2] + '/' + aDate[0]);
+        //iDays = parseInt(Math.abs(oDate1 - oDate2) / 1000 / 60 / 60 /24)+1;   //把相差的毫秒数转换为天数
+        var i=(oDate2 - oDate1) / 1000 / 60 / 60 /24;
+        if(i<0)
+        {
+            i-=1;
+        }
+        else
+        {
+            i+=1;
+        }
+        iDays = i;   //把相差的毫秒数转换为天数
+        return iDays;
+    }
+    function GetDateSevenAgo() {
+        var today = $("#current_date").val().split("-");
+        today = new Date(today[1] + '/' + today[2] + '/' + today[0]);
+        today.setDate(today.getDate()-6);
+        var y = today.getFullYear();
+        var m = today.getMonth()+1;
+        var d = today.getDate();
+        if (m<10)m = "0" + m;
+        if (d<10)d = "0" + d;
+        return y+"-"+m+"-"+d;
+    }
+    function GetDateMonthAgo() {
+        var today = $("#current_date").val().split("-");
+        today = new Date(today[1] + '/' + today[2] + '/' + today[0]);
+        today.setDate(today.getDate()-29);
+        var y = today.getFullYear();
+        var m = today.getMonth()+1;
+        var d = today.getDate();
+        if (m<10)m = "0" + m;
+        if (d<10)d = "0" + d;
+        return y+"-"+m+"-"+d;
+    }
+    function GetDateString(count) {
+        //var today = new Date();
+        var today = $("#current_date").val().split("-");
+        today = new Date(today[1] + '/' + today[2] + '/' + today[0]);
+        today.setDate(today.getDate()+count);
+        var y = today.getFullYear();
+        var m = today.getMonth()+1;
+        var d = today.getDate();
+        if (m<10)m = "0" + m;
+        if (d<10)d = "0" + d;
+        return y+"-"+m+"-"+d;
+    }
+    function GetWeekFirstDay()
+    {
+        //var today=new Date();
+        var today = $("#current_date").val().split("-");
+        today = new Date(today[1] + '/' + today[2] + '/' + today[0]);
+        var weekFirstDay=new Date(today-(today.getDay()-1)*86400000);
+        var m=Number(weekFirstDay.getMonth())+1;
+        var d=weekFirstDay.getDate();
+        if (m<10)m = "0" + m;
+        if (d<10)d = "0" + d;
+        return weekFirstDay.getFullYear()+"-"+m+"-"+d;
+    }
+    function GetWeekLastDay()
+    {
+        //var today=new Date();
+        var today = $("#current_date").val().split("-");
+        today = new Date(today[1] + '/' + today[2] + '/' + today[0]);
+        var weekFirstDay=new Date(today-(today.getDay()-1)*86400000);
+        var weekLastDay=new Date((weekFirstDay/1000+6*86400)*1000);
+        var m=Number(weekLastDay.getMonth())+1;
+        var d=weekLastDay.getDate();
+        if (m<10)m = "0" + m;
+        if (d<10)d = "0" + d;
+        return weekLastDay.getFullYear()+"-"+m+"-"+d;
+    }
+    function GetMonthFirstDay()
+    {
+        //var today=new Date();
+        var today = $("#current_date").val().split("-");
+        today = new Date(today[1] + '/' + today[2] + '/' + today[0]);
+        var monthFirstDay=new Date(today.getFullYear(),today.getMonth(),1);
+        var m=Number(monthFirstDay.getMonth())+1;
+        var d=monthFirstDay.getDate();
+        if (m<10)m = "0" + m;
+        if (d<10)d = "0" + d;
+        return monthFirstDay.getFullYear()+"-"+m+"-"+d;
+    }
+    function GetMonthLastDay()
+    {
+        //var today=new Date();
+        var today = $("#current_date").val().split("-");
+        today = new Date(today[1] + '/' + today[2] + '/' + today[0]);
+        var monthNextFirstDay=new Date(today.getFullYear(),today.getMonth()+1,1);
+        var monthLastDay=new Date(monthNextFirstDay-86400000);
+        var m=Number(monthLastDay.getMonth())+1;
+        var d=monthLastDay.getDate();
+        if (m<10)m = "0" + m;
+        if (d<10)d = "0" + d;
+        return monthLastDay.getFullYear()+"-"+m+"-"+d;
+    }
+
+	html5tooltips([
+		{	contentText: "在指定时间范围，点击预约车辆且预约成功的次数",
+		    targetSelector: ".qMark1",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，点击预约车辆且预约成功的人数",
+		    targetSelector: ".qMark2",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，成功扫码用车并使用的次数",
+		    targetSelector: ".qMark4",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，成功扫码用车并使用的人数",
+		    targetSelector: ".qMark5",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，成功还车的次数",
+		    targetSelector: ".qMark10",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，成功还车的人数",
+		    targetSelector: ".qMark11",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，还车后支付订单的次数",
+		    targetSelector: ".qMark18",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在制定时间范围，还车后支付订单的人数",
+		    targetSelector: ".qMark19",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，取消预约的次数",
+		    targetSelector: ".qMark3",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，使用微信付款的订单的次数及总金额",
+		    targetSelector: ".qMark20",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，使用宝币付款的订单的次数及总金额",
+		    targetSelector: ".qMark21",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，租金/∑日出租车辆。租金：指定时间范围内已支付的金额日均出租车辆：指定时间范围内日均有出租记录的车辆数（不算已经取消的订单）（以每日24点数据为准），即累计每日有出租记录的车辆数/天数。",
+		    targetSelector: ".qMark31",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，租金/∑日运营车辆。租金：指定时间范围内已支付的金额日均运营车辆：指定时间范围内日均运营车辆数（以每日24点数据为准），即累计每日运营车辆数/天数",
+		    targetSelector: ".qMark32",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，在围栏内部还车的次数",
+		    targetSelector: ".qMark12",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，在围栏外部还车的次数",
+		    targetSelector: ".qMark15",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，在网点内还车的次数",
+		    targetSelector: ".qMark16",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，在网点外还车的次数",
+		    targetSelector: ".qMark17",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，总里程/使用次数",
+		    targetSelector: ".qMark8",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "总时间/使用次数",
+		    targetSelector: ".qMark9",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，第一次成功验证手机号的用户数",
+		    targetSelector: ".qMark22",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，第一次实名验证成功的用户数",
+		    targetSelector: ".qMark23",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，第一次成功缴纳押金的用户数",
+		    targetSelector: ".qMark24",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，申请押金退款的用户数",
+		    targetSelector: ".qMark25",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间的前七天中，有过两次以上订单的用户的数量",
+		    targetSelector: ".qMark26",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间的前三十天中，有过两次以上订单的用户的数量",
+		    targetSelector: ".qMark28",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，临时锁车的次数",
+		    targetSelector: ".qMark6",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，临时锁车的用户数",
+		    targetSelector: ".qMark7",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，日均已租车辆/日均运营车辆。日均待租车辆：指定时间范围内日均已租车辆数（以每日24点数据为准），即累计每日已租车辆数/天日均运营车辆：指定时间范围内日均运营中的车辆数（以每日24点数据为准），即累计每日运营的车辆数/天",
+		    targetSelector: ".qMark33",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，出租中和待租的车辆数",
+		    targetSelector: ".qMark34",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，下架和停租的车辆数",
+		    targetSelector: ".qMark37",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，出租中的车的数量",
+		    targetSelector: ".qMark35",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，空闲的车的数量",
+		    targetSelector: ".qMark36",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，人工停租的车的数量",
+		    targetSelector: ".qMark44",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，维修中的车的数量",
+		    targetSelector: ".qMark45",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，断电的车的数量",
+		    targetSelector: ".qMark46",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，低电量的车的数量",
+		    targetSelector: ".qMark47",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，没有电量的车的数量",
+		    targetSelector: ".qMark48",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，两天内没有任何订单的车的数量",
+		    targetSelector: ".qMark49",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，有了订单，但是没有里程的车的数量",
+		    targetSelector: ".qMark50",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，离线未超过24小时的车的数量",
+		    targetSelector: ".qMark51",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，离线超过24小时的车的数量",
+		    targetSelector: ".qMark52",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，在围栏外的车的数量",
+		    targetSelector: ".qMark40",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，电量不组足的车的数量",
+		    targetSelector: ".qMark41",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，离线的车的数量",
+		    targetSelector: ".qMark42",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "当前时间，回收下架了的车的数量",
+		    targetSelector: ".qMark43",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+        {	contentText: "在指定时间范围，通过输入车牌号下单的用户 ",
+            targetSelector: ".qMark55",
+            maxWidth:"200",
+            stickTo: "bottom"
+        },
+		{	contentText: "在指定时间范围，通过直接扫码下单的用户 ",
+		    targetSelector: ".qMark54",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，通过预约下单的用户 ",
+		    targetSelector: ".qMark53",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，日均每辆车（运营中）贡献的订单数。计算方法：使用次数/∑日运营车辆日运营车辆——当日24点的运营中的车辆 ",
+		    targetSelector: ".qMark29",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+		{	contentText: "在指定时间范围，日均每辆车（出租）贡献的订单数。计算方法：使用次数/∑日出租车辆。日出租车辆--指定时间范围内有出租记录的车辆数（不算已经取消的订单）",
+		    targetSelector: ".qMark30",
+		    maxWidth:"200",
+		    stickTo: "bottom"
+		},
+        {	contentText: "开锁成功的次数",
+            targetSelector: ".qMark80",
+            maxWidth:"200",
+            stickTo: "bottom"
+        },
+        {	contentText: "开锁成功并骑行超过0.3公里",
+            targetSelector: ".qMark81",
+            maxWidth:"200",
+            stickTo: "bottom"
+        }
+	])
+</script>
+</html>

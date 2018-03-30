@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+    <title>好友邀请你一起骑小蜜单车</title>
+    <meta name="keywords" content="" />
+    <meta name="description" content="" />
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="browsermode" content="application" />
+    <meta name="format-detection" content="telephone=no,email=no,adress=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <link rel="stylesheet" href="http://css.baojia.com/s4/c/css/reset.css">
+    <!-- <link rel="stylesheet" href="../../css/m-170816/style.css"> -->
+    <link rel="stylesheet" href="http://css.baojia.com/s4/e/css/m-170816/style.css">
+</head>
+<body>
+	<div class="invite code">
+		<div class="txt">
+			注册即可获得<span>5张</span>骑行优惠券
+		</div>
+		<div class="backimg">
+			<img src="http://css.baojia.com/s4/e/images/m-170816/imageH5.png" alt="">
+		</div>
+		<div class="codetxt">
+			<p>验证码已发送至<span>{$mobile}</span></p>
+			<p>输入4位短信验证码</p>
+		</div>
+		<div class="input_box code_input">
+			<input type="tel" placeholder="请输入验证码"  maxlength="4">
+		</div>
+		<!-- <div class="input_box code_input">
+			<input type="tel" placeholder="请输入验证码"  maxlength="4">
+		</div> -->
+		<a href="javascript:;" class="btn codebtn">注册领取优惠券</a>
+		<input type="hidden" name="uid" id="uid" value="{$uid}">
+		<input type="hidden" name="vid" id="vid" value="{$vid}">
+		<input type="hidden" name="mobile" id="mobile" value="{$mobile}">
+		<input type="hidden" name="invite" id="invite" value="{$invite}">
+	</div>		
+</body>
+<script src="http://css.baojia.com/s4/e/js/m-170816/flexible.js"></script>
+<script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+<script src="http://css.baojia.com/s4/e/js/m-170816/jquery.bj.help.js"></script>
+<script>
+	$(function(){
+		$(".codebtn").click(function(){
+			var inpval=$(".code_input input").val();
+			var uid=$("#uid").val();
+			var vid=$("#vid").val();
+			var mobile=$("#mobile").val();
+			var invite=$("#invite").val();
+			if(inpval==""){
+				viewError('请输入验证码！');
+			}else if(inpval.length<4){
+				viewError('请输入正确的验证码！');
+			}else{
+				$.post("{:U('/Api/Index/Code_check')}",
+				 	{
+				    	"code":inpval,
+				    	"uid":uid,
+				    	"vid":vid,
+				    	"mobile":mobile,
+				    	"invite":invite
+				    },
+				        function(data){
+				        	if( data.status == 1 ){
+				        		var uid = data.uid;
+				        		var uid = uid.replace('/','XXXX');
+				             window.location.href="{:U('/Api/Index/coupon/uid/"+uid+"/inpval/"+inpval+"')}";
+		                     }else if(  data.status == 0 && data.rid == -1 ){
+				        		viewError(data.info);
+				        		window.location.href="{:U('/Api/Index/Invitation/invite/"+invite+"')}";
+				        	}else{
+				        		viewError(data.info);
+				        	}
+				    },'json');
+			}
+		});
+		$(".code_input").click(function(){
+			$(".code_input input").focus();
+		});
+		$(".code_input input").focus(function(){
+			$(this).css({"text-align":"left"});
+		});
+		$(".code_input input").blur(function(){
+			$(this).css({"text-align":"center"});
+		});
+	})
+</script>
+</html>

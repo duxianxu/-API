@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+    <title>好友邀请你一起骑小蜜单车</title>
+    <meta name="keywords" content="" />
+    <meta name="description" content="" />
+    <meta name="renderer" content="webkit|ie-comp|ie-stand">
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="browsermode" content="application" />
+    <meta name="format-detection" content="telephone=no,email=no,adress=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <link rel="stylesheet" href="http://css.baojia.com/s4/c/css/reset.css">
+    <!-- <link rel="stylesheet" href="../../css/m-170816/style.css"> -->
+    <link rel="stylesheet" href="http://css.baojia.com/s4/e/css/m-170816/style.css">
+</head>
+<body>
+	<div class="invite">
+		<div class="logo">
+			<img src="http://css.baojia.com/s4/e/images/m-170816/logo.png" alt="">
+		</div>
+		<div class="txt">
+			注册即可获得<span>5张</span>骑行优惠券
+		</div>
+		<div class="backimg">
+			<img src="http://css.baojia.com/s4/e/images/m-170816/imageH5.png" alt="">
+		</div>
+		<div class="input_box">
+			<input type="tel" placeholder="请输入手机号" class="tel" maxlength="11">
+		</div>
+		<a href="javascript:;" class="btn subbtn">下一步</a>
+		<div class="mask">
+			<div class="pop">
+				<div class="pop_tit">
+					<h1>手机号已注册</h1>
+					<p>您的手机号已注册，请直接下载小蜜单车APP使用</p>
+				</div>
+				<if condition="$type eq 1">
+				 <a href="https://itunes.apple.com/cn/app/%E5%B0%8F%E8%9C%9C%E5%8D%95%E8%BD%A6/id1211515606?mt=8" class="download">下载小蜜单车App</a>
+					<elseif condition="$type eq 2"/><a href="javascript:;" class="download">下载小蜜单车App</a>
+					<else /><a href="javascript:;" class="download">下载小蜜单车App</a>
+				</if>
+				
+			</div>
+		</div>
+		<input type="hidden" name="uid" id="uid" value="{$uid}">
+	</div>
+	
+		
+</body>
+<script src="http://css.baojia.com/s4/e/js/m-170816/flexible.js"></script>
+<script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+<script src="http://css.baojia.com/s4/e/js/m-170816/jquery.bj.help.js"></script>
+<script>
+	$(function(){
+		$(".subbtn").click(function(){
+			var telval=$(".tel").val();
+			var invite=$("#uid").val();  //邀请人uid
+			if(telval==""){
+				viewError('请输入手机号！');
+			}else if(telval.length<11){
+				viewError('请输入正确的手机号！');
+			}else{
+				 $.post("{:U('/Api/Index/quickLoginCode')}",
+				 	{
+				    	"invite":invite,
+				    	"mobile":telval
+				    },
+				        function(data){
+				        	if( data.status == 1 ){
+				        		var vid = data.vid;
+				        		var uid = data.uid;
+				        		var vid = vid.replace('/','XXXX');
+				        		var uid = uid.replace('/','XXXX');
+				        		// alert("{:U('/Api/Index/code',array('mobile'=>"+telval+",'uid'=>"+uid+",'vid'=>"+vid+",'invite'=>"+invite+"))}");
+				        		window.location.href="{:U('/Api/Index/code/mobile/"+telval+"/uid/"+uid+"/vid/"+vid+"/invite/"+invite+"')}";
+				        	
+				        	}else if( data.status == -100 ){
+				        		$(".mask").css("display","block");
+				        	}else{
+				        		viewError(data.info);
+				        	}
+				    },'json');
+			}
+		});
+		$(".input_box").click(function(){
+			$(".tel").focus();
+		})
+	})
+</script>
+</html>
